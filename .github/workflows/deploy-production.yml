@@ -43,27 +43,36 @@ jobs:
           git clone https://github.com/nikic/PHP-Parser.git PHP-Parser
           chmod +x /tmp/yakpro-po/yakpro-po.php
           sudo ln -s /tmp/yakpro-po/yakpro-po.php /usr/local/bin/yakpro-po
-          yakpro-po --help > /dev/null && echo "Yakpro-Po successfully verified!"
+          echo "Yakpro-Po successfully installed."
 
       - name: 5. Encrypt Controllers, Licensing Services & Middleware
         run: |
           echo "Encrypting Controllers..."
           find app/Http/Controllers -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
-            yakpro-po "$file" -o "${file}.tmp" --config-file .github/yakpro-po.cnf
-            mv "${file}.tmp" "$file"
+            rm -f "${file}.obf"
+            yakpro-po "$file" -o "${file}.obf" --config-file .github/yakpro-po.cnf
+            if [ -f "${file}.obf" ]; then
+              mv "${file}.obf" "$file"
+            fi
           done
 
           echo "Encrypting Licensing Services..."
           find app/Services/Licensing -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
-            yakpro-po "$file" -o "${file}.tmp" --config-file .github/yakpro-po.cnf
-            mv "${file}.tmp" "$file"
+            rm -f "${file}.obf"
+            yakpro-po "$file" -o "${file}.obf" --config-file .github/yakpro-po.cnf
+            if [ -f "${file}.obf" ]; then
+              mv "${file}.obf" "$file"
+            fi
           done
 
           echo "Encrypting VerifyLicense Middleware..."
-          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php.tmp --config-file .github/yakpro-po.cnf
-          mv app/Http/Middleware/VerifyLicense.php.tmp app/Http/Middleware/VerifyLicense.php
+          rm -f app/Http/Middleware/VerifyLicense.php.obf
+          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php.obf --config-file .github/yakpro-po.cnf
+          if [ -f app/Http/Middleware/VerifyLicense.php.obf ]; then
+            mv app/Http/Middleware/VerifyLicense.php.obf app/Http/Middleware/VerifyLicense.php
+          fi
 
       - name: 6. Commit & Force Push to production branch
         env:

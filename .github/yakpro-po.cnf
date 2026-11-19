@@ -20,6 +20,6 @@ $conf->obfuscate_property_name      = false;
 $conf->obfuscate_variable_name      = true;
 $conf->obfuscate_constant_name      = true;
 $conf->obfuscate_string_literal     = true;
-$conf->shuffle_stmts                = true;
+$conf->shuffle_stmts                = false;
 $conf->strip_indentation            = true;
 $conf->abort_on_error               = false;

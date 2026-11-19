@@ -40,7 +40,7 @@ jobs:
         run: |
           git clone https://github.com/pk-fr/yakpro-po.git /tmp/yakpro-po
           cd /tmp/yakpro-po
-          git clone --branch 4.x https://github.com/nikic/PHP-Parser.git PHP-Parser
+          git clone https://github.com/nikic/PHP-Parser.git PHP-Parser
           chmod +x /tmp/yakpro-po/yakpro-po.php
           sudo ln -s /tmp/yakpro-po/yakpro-po.php /usr/local/bin/yakpro-po
           yakpro-po --help > /dev/null && echo "Yakpro-Po successfully verified!"

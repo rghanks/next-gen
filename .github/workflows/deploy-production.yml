@@ -40,26 +40,30 @@ jobs:
         run: |
           git clone https://github.com/pk-fr/yakpro-po.git /tmp/yakpro-po
           cd /tmp/yakpro-po
-          git clone --branch 4.x https://github.com/nikic/PHP-Parser.git /tmp/yakpro-po/include/php-parser
+          git clone --branch 4.x https://github.com/nikic/PHP-Parser.git PHP-Parser
           chmod +x /tmp/yakpro-po/yakpro-po.php
           sudo ln -s /tmp/yakpro-po/yakpro-po.php /usr/local/bin/yakpro-po
+          yakpro-po --help > /dev/null && echo "Yakpro-Po successfully verified!"
 
       - name: 5. Encrypt Controllers, Licensing Services & Middleware
         run: |
           echo "Encrypting Controllers..."
-          find app/Http/Controllers -type f -name "*.php" | while read file; do
+          find app/Http/Controllers -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
-            yakpro-po "$file" -o "$file" --config-file .github/yakpro-po.cnf
+            yakpro-po "$file" -o "${file}.tmp" --config-file .github/yakpro-po.cnf
+            mv "${file}.tmp" "$file"
           done
 
           echo "Encrypting Licensing Services..."
-          find app/Services/Licensing -type f -name "*.php" | while read file; do
+          find app/Services/Licensing -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
-            yakpro-po "$file" -o "$file" --config-file .github/yakpro-po.cnf
+            yakpro-po "$file" -o "${file}.tmp" --config-file .github/yakpro-po.cnf
+            mv "${file}.tmp" "$file"
           done
 
           echo "Encrypting VerifyLicense Middleware..."
-          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php --config-file .github/yakpro-po.cnf
+          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php.tmp --config-file .github/yakpro-po.cnf
+          mv app/Http/Middleware/VerifyLicense.php.tmp app/Http/Middleware/VerifyLicense.php
 
       - name: 6. Commit & Force Push to production branch
         env:

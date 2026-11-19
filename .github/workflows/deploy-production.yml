@@ -1,0 +1,81 @@
+name: Auto-Build Encrypted Production Release
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  encrypt-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: development
+          fetch-depth: 0
+
+      - name: 2. Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, openssl, json, tokenizer
+
+      - name: 3. Strip sensitive vendor files
+        run: |
+          echo "Removing private key and vendor license generator..."
+          rm -f storage/license/license_private.key
+          rm -f app/Console/Commands/LicenseGenerate.php
+          # Ensure license_public.key stays intact for verification
+          if [ ! -f storage/license/license_public.key ]; then
+            echo "Warning: storage/license/license_public.key not found!"
+          fi
+
+      - name: 4. Install Yakpro-Po Obfuscator
+        run: |
+          git clone https://github.com/pk-fr/yakpro-po.git /tmp/yakpro-po
+          cd /tmp/yakpro-po
+          git clone --branch 4.x https://github.com/nikic/PHP-Parser.git /tmp/yakpro-po/include/php-parser
+          chmod +x /tmp/yakpro-po/yakpro-po.php
+          sudo ln -s /tmp/yakpro-po/yakpro-po.php /usr/local/bin/yakpro-po
+
+      - name: 5. Encrypt Controllers, Licensing Services & Middleware
+        run: |
+          echo "Encrypting Controllers..."
+          find app/Http/Controllers -type f -name "*.php" | while read file; do
+            echo "Encrypting $file"
+            yakpro-po "$file" -o "$file" --config-file .github/yakpro-po.cnf
+          done
+
+          echo "Encrypting Licensing Services..."
+          find app/Services/Licensing -type f -name "*.php" | while read file; do
+            echo "Encrypting $file"
+            yakpro-po "$file" -o "$file" --config-file .github/yakpro-po.cnf
+          done
+
+          echo "Encrypting VerifyLicense Middleware..."
+          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php --config-file .github/yakpro-po.cnf
+
+      - name: 6. Commit & Force Push to production branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create or switch to production branch
+          git checkout -B production
+          
+          # Add all modified files
+          git add -A
+          
+          # Commit only if there are changes
+          git commit -m "Automated encrypted production release [skip ci] (Commit: ${{ github.sha }})" || echo "No changes to commit"
+          
+          # Push to production branch
+          git push origin production --force

@@ -1,0 +1,123 @@
+/* The compact OPD workspace follows the existing patient/opd-billing layout. */
+.billing-classic{--md-sys-color-primary:#333655;--md-sys-color-on-primary:#fff;--md-sys-color-primary-container:#e9e9f0;--md-sys-color-on-primary-container:#333655;--md-sys-shape-corner-small:3px;--md-sys-shape-corner-medium:3px;--md-sys-min-target:32px;background:#eef0f2;color:#343a40;font-family:Arial,Helvetica,sans-serif;font-size:14px}
+.billing-classic .app{display:block;min-height:100vh}
+.billing-classic .main{width:100%;min-width:0;margin:0;padding:0 0 16px}
+.billing-classic .topbar{display:flex;flex-wrap:nowrap;position:sticky;top:0;z-index:60;min-height:45px;height:45px;padding:0 14px;background:#0f7872;border:0;color:#fff;gap:16px}
+.billing-classic .topbar .tb-spacer{display:none}
+.billing-classic .topbar .clinic-title{order:2;flex:none;color:#fff}
+.billing-classic .topbar .clinic-title svg{color:#fff}
+.billing-classic .topbar .pop-me{order:3}
+.billing-classic .topbar .avatar-btn{display:flex;align-items:center;gap:8px;width:auto;max-width:250px;height:32px;background:transparent;color:#fff;border:0;border-radius:0;font-size:12px;white-space:nowrap}
+.billing-classic .topbar .avatar-btn::after{content:attr(title);display:block;max-width:205px;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.billing-main-nav{order:1;flex:1;display:flex;align-items:stretch;gap:8px;min-width:0;height:40px;align-self:flex-end;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.billing-main-nav a{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;flex:none;min-width:96px;padding:3px 12px;background:#08615d;color:#fff;border-radius:4px 4px 0 0;text-decoration:none;font-size:12px;line-height:15px;white-space:nowrap;box-sizing:border-box}
+.billing-main-nav a:hover,.billing-main-nav a.active{background:#f0f1f3;color:#343a40}
+.billing-main-nav a i{font-size:14px;line-height:16px}
+.billing-pagebar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:10px 18px 8px}
+.billing-pagebar h1{font-size:18px;line-height:26px;font-weight:500;margin:0}
+.billing-pagebar h1 i{margin-right:7px}
+.billing-pagebar .ob-tabs{display:flex;gap:4px}
+.billing-pagebar .ob-tabs button{min-height:30px;border:1px solid #d0d1d6;border-radius:3px;padding:4px 13px;background:#fff;color:#343a40;cursor:pointer;font-size:13px}
+.billing-pagebar .ob-tabs button[aria-selected=true]{background:#333655;border-color:#333655;color:white}
+.billing-classic #view-new{margin:0 18px;padding:8px;background:#fff;border:1px solid #c9cbd0;border-radius:3px;box-shadow:0 1px 3px #0000000a;overflow:visible}
+.billing-classic #view-new>.finder{position:relative;top:auto;padding:0 0 8px;margin:0;border:0;border-bottom:1px solid #dedee2;background:#fff;box-shadow:none;z-index:30}
+.billing-classic #view-new .ob-work{max-width:none;width:100%;padding:0;gap:0}
+.billing-classic #view-new .ob-form{gap:0}
+.billing-classic #view-new .panel.sec{border:0;border-bottom:1px solid #dedee2;border-radius:0;box-shadow:none;background:#fff}
+.billing-classic #view-new .sec-head{padding:8px 0;border:0;min-height:34px;gap:10px}
+.billing-classic #view-new .sec-title{font-size:14px;font-weight:600;gap:7px;color:#343a40}
+.billing-classic #view-new .sec-n{width:20px;height:20px;font-size:11px;background:#333655}
+.billing-classic #view-new .sec-body{padding:4px 0 10px}
+.billing-classic #view-new .field label{font-size:13px;font-weight:600;margin-bottom:5px;color:#343a40}
+.billing-classic #view-new input:not([type=checkbox]),.billing-classic #view-new select{box-sizing:border-box;min-height:32px;height:32px;font:14px Arial,Helvetica,sans-serif;color:#434a58;border:1px solid #d0c9c9;border-radius:3px;padding:5px 10px;background:#fff;box-shadow:0 2px 4px #0000000a;line-height:20px}
+.billing-classic #view-new input:focus,.billing-classic #view-new select:focus{outline:2px solid #33365540;outline-offset:0;border-color:#9091aa}
+.billing-classic #view-new select:disabled,.billing-classic #view-new input:disabled{background:#eceeef}
+.billing-classic #view-new .btn{font-size:13px;line-height:18px;min-height:30px;padding:5px 12px;border-radius:3px}
+.billing-classic #view-new .btn-filled{background:#333655;color:#fff}
+.billing-classic #view-new .btn-outlined{border-color:#c9cbd0;background:#fff;color:#333655}
+.billing-classic #view-new .btn-text{color:#333655}
+.billing-classic #view-new .ob-empty{border:0;border-radius:0;background:#fff;padding:28px 10px;min-height:120px}
+.billing-classic #view-new .ob-pt{display:flex;align-items:center;gap:16px;border:0;border-bottom:1px solid #dedee2;border-radius:0;background:#fff;padding:8px 0;box-shadow:none;flex-wrap:wrap}
+.billing-classic #view-new .vv-who{display:flex;align-items:center;gap:28px;flex:1;min-width:0;flex-wrap:wrap}
+.billing-classic #view-new .vv-who h2{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;line-height:22px;margin:0}
+.billing-classic #pt-meta{display:flex;align-items:center;gap:22px;flex:1;justify-content:space-between;font-size:13px;line-height:20px;margin:0;flex-wrap:wrap}
+.billing-classic #pt-meta span{font-size:13px}
+.billing-classic #pt-meta span::before{display:none}
+.billing-classic #view-new .billing-visit-kind{margin:0 0 8px;max-width:220px}
+.billing-classic #view-new #sec-visit .grid4{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 20px}
+.billing-classic #view-new #sec-visit .ob-consult{grid-column:auto!important;margin-top:0!important}
+.billing-classic #view-new #sec-visit .ob-consult .lbl{display:none}
+.billing-classic #view-new .billing-step-actions{margin-top:8px}
+.billing-classic #view-new #billing-visit-summary .sec-head{flex-wrap:nowrap;padding:8px 0}
+.billing-classic #view-new #billing-visit-summary .sec-head>div{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.billing-classic #view-new #billing-visit-description{font-size:13px;line-height:20px;margin:0;color:#434a58}
+.billing-classic #view-new #billing-edit-visit{white-space:nowrap;flex:none}
+.billing-classic #view-new .billing-workspace{border:0;outline:0}
+.billing-classic #view-new .billing-workspace-heading{padding:8px 0 6px;min-height:30px;background:#fff}
+.billing-columns{display:grid;grid-template-columns:minmax(0,2.05fr) minmax(340px,1fr);gap:10px;align-items:start;min-width:0}
+.billing-services{min-width:0;min-height:430px}
+.billing-table-scroll{overflow-x:auto;max-width:100%}
+.billing-classic #view-new #sec-bill .bill{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:14px;line-height:20px;margin:0}
+.billing-classic #view-new #sec-bill .bill thead th{background:#333655;color:#fff;padding:6px 9px;border:0;font-size:13px;font-weight:600;text-align:left;white-space:nowrap}
+.billing-classic #view-new #sec-bill .bill th,.billing-classic #view-new #sec-bill .bill td{box-sizing:border-box}
+.billing-classic #view-new #sec-bill .bill thead th:first-child{border-radius:4px 0 0 4px;width:58px}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(2){width:80px}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(3){width:auto}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(4){width:96px}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(5){width:68px}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(6){width:110px}
+.billing-classic #view-new #sec-bill .bill thead th:nth-child(7){width:102px}
+.billing-classic #view-new #sec-bill .bill thead th:last-child{width:65px;border-radius:0 4px 4px 0}
+.billing-classic #view-new #sec-bill .bill tbody td{padding:4px 9px 2px;border:0;text-align:left;vertical-align:middle}
+.billing-classic #view-new #sec-bill .bill .num{text-align:left}
+.billing-classic #view-new #sec-bill .bill td.c-sn{width:auto;color:#434a58}
+.billing-classic #view-new #sec-bill .bill td:nth-child(3) .billing-cell{white-space:normal;overflow-wrap:anywhere}
+.billing-cell{display:block;padding:5px 9px;min-height:31px;box-sizing:border-box;background:#fafbfc;border-radius:3px;box-shadow:0 2px 4px #0000000a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.billing-cell.readonly,.billing-readout{background:#eceeef}
+.billing-classic #view-new #sec-bill .bill td input,.billing-classic #view-new #sec-bill .bill td select{width:100%;max-width:none;text-align:left;min-width:0;height:31px;min-height:31px}
+.billing-classic #view-new #sec-bill .bill .ldisc{width:100%;gap:0;position:relative}
+.billing-classic #view-new #sec-bill .bill .dunit{position:absolute;right:1px;top:1px;bottom:1px;z-index:1;border:0;border-left:1px solid #ddd;min-width:20px}
+.billing-classic #view-new #sec-bill .bill .dunit button{padding:0 4px;min-width:20px;font-size:10px;background:#fff;color:#333655}
+.billing-classic #view-new #sec-bill .bill .dunit button[aria-pressed=true]{display:none}
+.billing-classic #view-new #sec-bill .bill .line-disc{padding-right:27px}
+.billing-classic #view-new #sec-bill .bill .d-eq{font-size:10px;line-height:12px}
+.billing-remove{width:28px;height:28px;border:1px solid #ff6572;border-radius:3px;background:#fff;color:#ff5564;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.billing-remove svg{width:15px;height:15px}
+.billing-classic #view-new #sec-bill .bill-empty{margin:10px 0;color:#737983;font-size:13px}
+.billing-classic #view-new .billing-service-browser{width:min(100%,460px);margin-top:6px;position:relative}
+.billing-classic #view-new #svc-q{width:100%;border-color:#9296a5}
+.billing-classic #view-new .svc-list{position:static;max-height:280px;overflow-y:auto;width:100%;padding:4px;margin:0;border:0;border-radius:0;box-shadow:none;background:#fff}
+.billing-classic #view-new .svc-list li[role=option]{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #8e909b;min-height:24px;font-size:14px;line-height:18px;cursor:pointer;border-radius:3px}
+.billing-classic #view-new .svc-list li[aria-selected=true],.billing-classic #view-new .svc-list li:hover{background:#d5d5d5}
+.billing-classic #view-new .sv-code,.billing-classic #view-new .sv-grp{display:none}
+.billing-classic #view-new .sv-name{font-size:14px;font-weight:400;flex:1;line-height:18px}
+.billing-classic #view-new .sv-rate{font-size:12px;font-weight:400;color:#737983}
+.billing-payment{min-width:0;border-left:1px solid #dedee2;padding-left:10px}
+.billing-payment h3{margin:0 0 15px;padding:0 0 12px;border-bottom:1px solid #dedee2;font-size:18px;font-weight:400;line-height:24px}
+.billing-classic #view-new .billing-payment .totals{display:block;margin:0;padding:0;border:0;max-width:none}
+.billing-classic #view-new .billing-payment .tot{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:12px;padding:4px 0;min-height:32px;font-size:13px;font-weight:600;border:0}
+.billing-classic #view-new .billing-payment .tot label{font-size:13px;font-weight:600;margin:0}
+.billing-classic #view-new .billing-payment .tot-big{margin-top:0;padding-top:4px;font-size:13px}
+.billing-classic #view-new .billing-readout{display:block;min-height:32px;box-sizing:border-box;padding:5px 10px;border:1px solid #d0c9c9;border-radius:3px;box-shadow:0 2px 4px #0000000a;font-weight:400;line-height:20px;color:#434a58;text-align:left}
+.billing-classic #view-new .billing-payment .bd-ctl,.billing-classic #view-new .billing-payment .ldisc{min-width:0;width:100%}
+.billing-classic #view-new .billing-payment .ldisc input{width:100%;min-width:0;flex:1}
+.billing-classic #view-new .billing-payment .dunit button{min-width:27px;height:30px;min-height:30px;padding:0 7px;font-size:12px}
+.billing-classic #view-new .billing-payment .pay{margin-top:12px;padding-top:12px;border-top:1px solid #dedee2}
+.billing-payment-mode{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px;align-items:center;padding:4px 0}
+.billing-classic #view-new .billing-payment-mode+.billing-payment-mode{margin-top:0}
+.billing-payment-mode>label{font-size:13px;font-weight:600;line-height:18px;margin:0}
+.billing-payment-inputs{display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:10px;min-width:0}
+.billing-payment-inputs.is-cash{grid-template-columns:minmax(0,1fr)}
+.billing-classic #view-new .billing-payment-inputs input{width:100%;min-width:0}
+.billing-classic #view-new .billing-payment .pay-by{font-size:11px;text-align:right;margin:8px 0;color:#737983}
+.billing-classic #view-new .billing-actions{position:static;display:block;inset:auto;margin:10px 0 0;padding:0;border:0;box-shadow:none;background:#fff;min-height:0}
+.billing-classic #view-new .billing-actions .ab-what{font-size:11px;line-height:16px;color:#737983;margin-bottom:6px}
+.billing-classic #view-new .billing-actions .ab-line{font-size:11px;line-height:16px}
+.billing-classic #view-new .billing-actions .ab-sub{font-size:11px;line-height:16px;margin:0}
+.billing-classic #view-new .billing-actions .ab-btns{display:flex;flex-wrap:wrap;gap:6px}
+.billing-classic #view-new #collect{flex:1;min-width:130px}
+.billing-classic #view-new .billing-actions .kbd{display:none}
+.billing-classic #view-all,.billing-classic #view-ref{margin:0 18px}
+@media(max-width:1200px){.billing-columns{grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr)}.billing-classic #view-new #sec-bill .bill{min-width:770px}.billing-classic #view-new #sec-bill .bill thead th,.billing-classic #view-new #sec-bill .bill tbody td{padding-left:5px;padding-right:5px}.billing-classic .topbar .clinic-title{display:none}.billing-classic #pt-meta{gap:12px}}
+@media(max-width:900px){.billing-columns{grid-template-columns:1fr}.billing-services{min-height:0}.billing-payment{border-left:0;border-top:1px solid #dedee2;padding:15px 0 0}.billing-classic #view-new .billing-service-browser{width:100%}.billing-classic #view-new .svc-list{max-height:210px}.billing-classic #view-new #sec-visit .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.billing-classic .topbar .avatar-btn::after{display:none}.billing-classic .topbar{gap:8px;padding:0 8px}.billing-main-nav a{min-width:86px;padding:3px 8px}}
+@media(max-width:560px){.billing-classic #view-new,.billing-classic #view-all,.billing-classic #view-ref{margin:0 8px}.billing-pagebar{margin:8px;gap:8px}.billing-pagebar h1{font-size:16px}.billing-pagebar .ob-tabs button{padding:4px 8px;font-size:12px}.billing-classic #view-new .vv-who{gap:6px}.billing-classic #pt-meta{flex-basis:100%;gap:6px 14px;justify-content:flex-start}.billing-classic #view-new #billing-visit-summary .sec-head>div{gap:5px}.billing-classic #view-new #sec-visit .grid4{gap:10px}.billing-classic #view-new .sec-actions .btn{font-size:12px;padding:4px 8px}.billing-payment-inputs{grid-template-columns:minmax(0,1fr) 82px;gap:6px}.billing-classic #view-new .billing-payment .tot,.billing-payment-mode{gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}}

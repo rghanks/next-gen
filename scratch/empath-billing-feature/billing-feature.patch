@@ -1,0 +1,1506 @@
+--- a/app/Http/Controllers/V2/BillingController.php
++++ b/app/Http/Controllers/V2/BillingController.php
+@@ -48,9 +48,8 @@
+             ->all();
+ 
+         // Insurance & Patient Categories from Redis cache
+-        $categories = InsuranceCache::all($org_id)
+-            ->pluck('insurance_agen', 'id')
+-            ->all();
++        $insuranceList = InsuranceCache::all($org_id);
++        $categories = $insuranceList->pluck('insurance_agen', 'id')->all();
+ 
+       
+ 
+@@ -70,6 +69,9 @@
+             'doctors' => $doctors,
+             'specs' => $specs,
+             'categories' => $categories,
++            'cash_category_id' => DB::table('health_insurance_agen')->whereIn('id', array_keys($categories))->where('is_cash', 1)->value('id'),
++            'titles' => ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Master', 'Baby', 'Baby of', 'Smt.', 'Shri'],
++            'genders' => ['Male', 'Female', 'Transgender', 'Other'],
+             'services' => $opdCatalog,
+             'ref_users' => $refUsers,
+             'is_ref_by_enabled' => (bool)$isRefByEnabled,
+@@ -82,6 +84,9 @@
+ 
+         $userPermissions = [
+             'is_admin' => $isAdmin,
++            'patient' => [
++                'can_create' => (bool) $user->can('module-permission', ['patient', 'can_create']),
++            ],
+             'add_referred_by' => [
+                 'can_create' => (bool) $user->can('module-permission', ['add_referred_by', 'can_create']),
+             ],
+--- a/app/Http/Controllers/admin/PatientController.php
++++ b/app/Http/Controllers/admin/PatientController.php
+@@ -23679,7 +23679,13 @@
+         return response()->json($suggestions);
+     }
+ 
+-    private function create_visit($patient_id, $doctor_id,$charges, $org_id, $add_visit, $visit_date = null, $ref_by = null){
++    public function prepareOpdBillingVisit($patientId, $doctorId, $charges, $orgId, $addVisit, $refBy = null)
++    {
++        // V2 has already selected/locked the encounter context; legacy callers retain same-day reuse.
++        return $this->create_visit($patientId, $doctorId, $charges, $orgId, $addVisit, null, $refBy, false);
++    }
++
++    private function create_visit($patient_id, $doctor_id,$charges, $org_id, $add_visit, $visit_date = null, $ref_by = null, $reuseExisting = true){
+         try{
+ 
+             // Set default date at runtime
+@@ -23691,7 +23697,7 @@
+                 $visit_time = date('H:i:s', strtotime($visit_date));
+             }
+ 
+-            $visit_id = $this->check_if_patient_already_visit_for_today($patient_id, $doctor_id, $org_id, $date);
++            $visit_id = $reuseExisting ? $this->check_if_patient_already_visit_for_today($patient_id, $doctor_id, $org_id, $date) : null;
+            // dd($visit_date, $visit_time,$visit_id);
+             if($visit_id){
+                 if (!empty($ref_by) && $ref_by !== '__new__') {
+@@ -23836,6 +23842,19 @@
+         $doctor_id = $request->doctor_id;
+         $charges = $request->doctor_charges??0;
+         $add_visit = $request->add_visit;
++        $preparedVisit = null;
++        if ($request->filled('prepared_visit_id')) {
++            $preparedVisit = Visitlog::where('hospital_id', $org_id)
++                ->where('patient_id', $patient_id)->where('doctor_id', $doctor_id)
++                ->where('visit_status', 0)->where('emergency', 0)
++                ->find($request->prepared_visit_id);
++            if (!$preparedVisit || (int) $pi->hospital_id !== (int) $org_id) {
++                return response()->json(['success' => false, 'message' => 'The prepared visit does not match this patient and doctor.'], 422);
++            }
++            if ($request->filled('bill_no') && !PatientBilling::whereKey($request->bill_no)->where('visit_id', $preparedVisit->id)->exists()) {
++                return response()->json(['success' => false, 'message' => 'The bill does not belong to the prepared visit.'], 422);
++            }
++        }
+ 
+         // --- Billing Validations ---
+         $chargesArr = $request->charges ?? [];
+@@ -23946,6 +23965,7 @@
+                 // Verify that this draft bill belongs to the requested doctor
+                 $billDoctorMatch = PatientBilling::join('visitlog', 'visitlog.id', '=', 'patient_billing.visit_id')
+                     ->where('patient_billing.id', $bill_no)
++                    ->when($preparedVisit, function ($q) use ($preparedVisit) { $q->where('visitlog.id', $preparedVisit->id); })
+                     ->where('visitlog.doctor_id', $doctor_id)
+                     ->exists();
+ 
+@@ -23953,6 +23973,7 @@
+                     // bill_no was for another doctor, switch to this doctor's draft today if any, or null for new draft
+                     $doctorDraft = PatientBilling::join('visitlog', 'visitlog.id', '=', 'patient_billing.visit_id')
+                         ->where('visitlog.hospital_id', $org_id)
++                        ->when($preparedVisit, function ($q) use ($preparedVisit) { $q->where('visitlog.id', $preparedVisit->id); })
+                         ->where(function ($q) use ($patient_id) {
+                             $q->where('visitlog.patient_id', $patient_id)
+                               ->orWhere('visitlog.patient_id', preg_replace('/[^0-9]/', '', (string)$patient_id));
+@@ -23978,6 +23999,7 @@
+                 // If bill_no was not passed, enforce 1 draft per day per doctor
+                 $existingDraft = PatientBilling::join('visitlog', 'visitlog.id', '=', 'patient_billing.visit_id')
+                     ->where('visitlog.hospital_id', $org_id)
++                    ->when($preparedVisit, function ($q) use ($preparedVisit) { $q->where('visitlog.id', $preparedVisit->id); })
+                     ->where(function ($q) use ($patient_id) {
+                         $q->where('visitlog.patient_id', $patient_id)
+                               ->orWhere('visitlog.patient_id', preg_replace('/[^0-9]/', '', (string)$patient_id));
+@@ -24093,7 +24115,7 @@
+                     ->first()->current_setting??'cash';
+ 
+ 
+-            $visit_id = $this->create_visit($patient_id, $doctor_id, $charges, $org_id, $add_visit, null, $request->ref_by ?? null);
++            $visit_id = $preparedVisit ? $preparedVisit->id : $this->create_visit($patient_id, $doctor_id, $charges, $org_id, $add_visit, null, $request->ref_by ?? null);
+ 
+             if ($visit_id instanceof \Illuminate\Http\JsonResponse) {
+                 return $visit_id;
+--- a/resources/views/v2/billing/index.blade.php
++++ b/resources/views/v2/billing/index.blade.php
+@@ -77,11 +77,12 @@
+           <x-v2.patient-search id="finder" placeholder="Search UHID, phone number, ABHA ID or name" />
+ 
+           <div class="ob-work">
++            <x-v2.billing.patient-step :initialData="$initialData" :userPermissions="$userPermissions" />
+             <!-- Before patient is selected -->
+             <div class="ob-empty" id="ob-empty">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+               <b>Find the patient to start a bill</b>
+-              <span>Search by UHID, phone number, ABHA ID or name. A patient not yet registered is registered first, on <a id="reg-link" href="{{ route('registration.index') }}">Registration</a>.</span>
++              <span>Search by UHID, phone number, ABHA ID or name, or use Register new patient above to complete all three steps here.</span>
+             </div>
+ 
+                         <!-- Edit pick decision screen -->
+@@ -146,7 +147,7 @@
+ 
+               <div class="vv-top ob-pt" id="pt-block">
+                 <div class="vv-who">
+-                  <h2 id="pt-name"></h2>
++                  <h2><span class="sec-n" aria-hidden="true">1</span><span id="pt-name"></span></h2>
+                   <p class="vv-meta" id="pt-meta"></p>
+                 </div>
+                 <div class="pt-doc-badge" id="pt-doc-badge" hidden>
+@@ -160,7 +161,13 @@
+               </div>
+ 
+               <!-- Reused Visit Component with Billing mode -->
+-              <x-v2.registration.visit-step mode="billing" stepNumber="" title="Doctor and consultation" />
++              <section class="panel sec" id="billing-visit-summary" hidden>
++                <div class="sec-head">
++                  <div><h2 class="sec-title"><span class="sec-n" aria-hidden="true">2</span>Visit</h2><span class="sec-sum" id="billing-visit-description"></span></div>
++                  <button type="button" class="btn btn-text" id="billing-edit-visit">Edit visit</button>
++                </div>
++              </section>
++              <x-v2.registration.visit-step mode="billing" stepNumber="2" title="Visit" :billingWorkflow="true" />
+ 
+               @php
+                 $discAuthUsers = \App\Models\User::where('org_id', Auth::user()->org_id ?? 0)
+@@ -178,7 +185,7 @@
+               @endphp
+ 
+               <!-- Reused OPD Billing Component -->
+-              <x-v2.registration.billing-step stepNumber="" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
++              <x-v2.registration.billing-step stepNumber="3" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
+ 
+               <!-- Cancellation Panel -->
+               <section class="panel sec sec-x" id="sec-cancel" aria-labelledby="t-cancel" hidden>
+@@ -742,6 +749,10 @@
+     window.USER_PERMISSIONS = @json($userPermissions ?? []);
+     window.ROUTES = {
+       saveVisit: "{{ route('visit.save') }}",
++      registerBillingPatient: "{{ route('v2.billing.register_patient') }}",
++      prepareBillingVisit: "{{ route('v2.billing.prepare_visit') }}",
++      saveBillingWorkflow: "{{ route('v2.billing.save') }}",
++      checkDuplicateMobile: "{{ route('registration.check_duplicate_mobile') }}",
+       addRefList: "{{ route('patient.add_ref_list') }}",
+       genOpdBill: "{{ route('patient.gen_opd_bill') }}",
+       sendWhatsAppBill: "{{ route('patient.send_wp_gen_bill') }}",
+@@ -775,6 +786,7 @@
+   </script>
+   <script src="{{ asset('assets/js/v2/nav-shell.js') }}?v={{ file_exists(public_path('assets/js/v2/nav-shell.js')) ? filemtime(public_path('assets/js/v2/nav-shell.js')) : '1' }}" charset="utf-8"></script>
+   <script src="{{ asset('assets/js/v2/vitals-modal.js') }}?v={{ time() }}" charset="utf-8"></script>
++  <script src="{{ asset('assets/js/v2/billing-patient.js') }}?v={{ time() }}" charset="utf-8"></script>
+   <script src="{{ asset('assets/js/v2/opd-billing.js') }}?v={{ time() }}" charset="utf-8"></script>
+ </body>
+ </html>
+--- a/public/assets/js/v2/opd-billing.js
++++ b/public/assets/js/v2/opd-billing.js
+@@ -17,6 +17,14 @@
+   var state = {
+     activeTab: 'new',
+     patient: null,
++    workflowStep: 1,
++    visitPrepared: false,
++    preparingVisit: false,
++    savingBill: false,
++    chargeRequest: 0,
++    patientRequest: 0,
++    billRequestId: null,
++    billRequestPayload: null,
+     doctor: null,
+     consultation: null,
+     addConsultation: false,
+@@ -615,39 +623,19 @@
+     resetBillForm();
+     populateDoctors();
+ 
+-    var patientId = p.id || p.uhid;
+-    var draftUrl = (window.ROUTES && window.ROUTES.patientTodayDraft) ? (window.ROUTES.patientTodayDraft + patientId) : null;
+-    if (draftUrl) {
+-      $.ajax({
+-        url: draftUrl,
+-        type: 'GET',
+-        cache: false,
+-        success: function (resp) {
+-          if (resp && resp.success && resp.draft_bill) {
+-            loadDraftBillData(resp.draft_bill);
+-          } else {
+-            calculateTotals();
+-            snack(name + ' · ' + p.uhid + ' selected.');
+-          }
+-        },
+-        error: function () {
+-          calculateTotals();
+-          snack(name + ' · ' + p.uhid + ' selected.');
+-        }
+-      });
+-    } else {
+-      calculateTotals();
+-      snack(name + ' · ' + p.uhid + ' selected.');
+-    }
+-  }
+-
+-  function loadDraftBillData(d) {
++    setWorkflowStep(2);
++    $(document).trigger('billing:patient-selected');
++    snack(name + ' · ' + p.uhid + ' selected. Create the visit to continue.');
++  }
++
++  function loadDraftBillData(d, onDone) {
+     state.isLoadingDraft = true;
+     state.billId = d.bill_id;
+     state.visitId = d.visit_id || null;
+     state.draftDoctorId = d.doctor_id ? String(d.doctor_id) : null;
+     state.consultPrimaryId = d.consult_primary_id || null;
+     state.regPrimaryId = d.reg_primary_id || null;
++    $('#consult').prop('checked', !!d.consult_primary_id);
+ 
+     if (d.consult_charge !== undefined && d.consult_charge !== null) {
+       state.draftConsultCharge = parseFloat(d.consult_charge) || 0;
+@@ -724,22 +712,39 @@
+       paintBillingRefby();
+     }
+ 
++    setRegistrationItem(parseFloat(d.reg_charge) || 0, d.reg_primary_id);
++    var registration = state.services.find(function (s) { return s.isRegistration; });
++    if (registration) {
++      registration.disc = String(d.reg_disc || '');
++      registration.discPct = !!d.reg_disc_pct;
++    }
++    if (d.consult_primary_id) {
++      state.services.unshift({
++        primary_id: d.consult_primary_id, id: 'consult_draft', service_id: window.INITIAL_DATA.consult_service_id,
++        name: 'Consultation', rate: parseFloat(d.consult_charge) || 0, qty: 1,
++        disc: String(d.consult_disc || ''), discPct: !!d.consult_disc_pct, isConsult: true
++      });
++    }
+     renderBillTable();
+     calculateTotals();
+     snack((state.patient ? state.patient.name || state.patient.first_name || 'Patient' : 'Patient') + ' · draft bill #' + d.bill_id + ' loaded with saved services.');
+ 
+     if (d.doctor_id) {
+-      fetchDoctorCharges(d.doctor_id, function () {
++      fetchDoctorCharges(d.doctor_id, function (chargesAvailable) {
+         state.isLoadingDraft = false;
++        if (!chargesAvailable && $('#billing-visit-kind').val() === '1') return;
++        if (onDone) onDone();
+       });
+     } else {
+       state.isLoadingDraft = false;
++      if (onDone) onDone();
+     }
+   }
+ 
+   function changePatient() {
+     state.patient = null;
+-    state.visitId = null;
++    resetBillForm();
++    setWorkflowStep(1);
+     $('#ob-form').attr('hidden', true);
+     $('#ob-paid').attr('hidden', true);
+     $('#ob-bar').attr('hidden', true);
+@@ -749,6 +754,147 @@
+     $('#adv-count').text('').attr('hidden', true);
+     $('#a-name, #a-phone, #a-gender').val('');
+     $('#q').val('').focus();
++  }
++
++  function workflowEditing() {
++    return state.editing && state.editing.active;
++  }
++
++  function requestId() {
++    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, function (c) {
++      return (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
++    });
++  }
++
++  function setWorkflowStep(step) {
++    state.workflowStep = step;
++    $('#billing-patient').attr('hidden', step !== 1);
++    $('#finder').attr('hidden', step !== 1);
++    $('#billing-patient-hint').removeAttr('hidden');
++    if (step === 1) $('#billing-register').attr('hidden', true);
++    $('#sec-visit').toggle(step === 2);
++    $('#sec-bill').toggle(step === 3);
++    $('#billing-visit-summary').attr('hidden', step !== 3);
++    $('#ob-bar').attr('hidden', step !== 3);
++  }
++
++  function invalidateVisit(clearBill) {
++    if (workflowEditing()) return;
++    state.isLoadingDraft = false;
++    state.visitPrepared = false;
++    state.patientRequest++;
++    if (clearBill) {
++      state.visitId = null;
++      state.billId = null;
++      state.consultPrimaryId = null;
++      state.regPrimaryId = null;
++      state.services.forEach(function (s) { s.primary_id = null; });
++    }
++    if (state.patient) setWorkflowStep(2);
++  }
++
++  function setRegistrationItem(amount, primaryId) {
++    state.services = state.services.filter(function (s) { return !s.isRegistration; });
++    if (amount <= 0) return;
++    var serviceId = window.INITIAL_DATA.reg_service_id;
++    if (!serviceId) {
++      $('#billing-visit-error').text('Registration service is not configured. Ask an administrator to configure it before billing.');
++      return;
++    }
++    state.services.push({
++      id: 'registration', service_id: serviceId, primary_id: primaryId || null,
++      name: 'Registration', rate: amount, qty: 1, disc: '', discPct: false,
++      isConsult: false, isRegistration: true, is_editable: false
++    });
++  }
++
++  function updateVisitKind() {
++    var clinical = $('#billing-visit-kind').val() === '1';
++    $('#sec-visit [data-field="charge"], #sec-visit .ob-consult').toggle(clinical);
++    $('#consult').prop('checked', clinical).prop('disabled', !clinical || !state.consultation);
++    updateConsultationItem();
++  }
++
++  function prepareBillingVisit() {
++    if (!state.patient || state.preparingVisit) return;
++    var clinical = $('#billing-visit-kind').val() === '1';
++    if (!state.doctor || !$('#doc').val()) {
++      $('#billing-visit-error').text('Select the doctor for this visit.');
++      $('#doc').trigger('focus');
++      return;
++    }
++    if (clinical && (!state.consultation || $('#charge').is(':disabled'))) {
++      $('#billing-visit-error').text('Select an available consultation before creating the visit.');
++      $('#charge').trigger('focus');
++      return;
++    }
++    var token = ++state.patientRequest;
++    var patientId = state.patient.id || state.patient.uhid;
++    var $controls = $('#billing-start, #pt-change, #billing-visit-kind, #doc, #spec, #ref_by, #charge, #consult');
++    var disabled = $controls.map(function () { return this.disabled; }).get();
++    state.preparingVisit = true;
++    $controls.prop('disabled', true);
++    $('#billing-visit-error').empty();
++    $.ajax({
++      url: window.ROUTES.prepareBillingVisit,
++      type: 'POST',
++      data: {
++        patient_id: patientId, doctor_id: state.doctor.id,
++        doctor_charges: clinical && state.consultation ? state.consultation.amt : 0,
++        add_visit: clinical ? 1 : 0, ref_by: state.refBy || '', visit_id: state.visitId || ''
++      },
++      success: function (resp) {
++        if (token !== state.patientRequest) return;
++        if (!resp.success || !resp.visit_id) {
++          $('#billing-visit-error').text(resp.message || 'The visit could not be saved.');
++          return;
++        }
++        state.visitId = resp.visit_id;
++        var showBilling = function () {
++          if (token !== state.patientRequest) return;
++          state.visitPrepared = true;
++          $('#billing-visit-description').text('Visit ' + (resp.visit_no || resp.visit_id) + ' · ' + docName(state.doctor) + ' · ' + (clinical ? (state.consultation ? state.consultation.name : 'Doctor consultation') : 'Services only'));
++          setWorkflowStep(3);
++          renderBillTable();
++          calculateTotals();
++          $('#svc-q').trigger('focus');
++        };
++        if (resp.draft_bill_id) {
++          if (String(state.billId) === String(resp.draft_bill_id)) {
++            showBilling();
++            return;
++          }
++          $.ajax({
++            url: window.ROUTES.draftBill + resp.draft_bill_id,
++            success: function (draftResp) {
++              if (token !== state.patientRequest) return;
++              if (draftResp.success && draftResp.draft_bill) loadDraftBillData(draftResp.draft_bill, showBilling);
++              else $('#billing-visit-error').text('The draft could not be loaded. Retry to resume this visit.');
++            },
++            error: function () {
++              if (token === state.patientRequest) $('#billing-visit-error').text('The visit was saved, but its draft could not be loaded. Retry to resume it.');
++            }
++          });
++        } else {
++          state.billId = null;
++          if (resp.registration_charge > 0 && !window.INITIAL_DATA.reg_service_id) {
++            $('#billing-visit-error').text('Registration service is not configured. Ask an administrator to configure it before billing.');
++            return;
++          }
++          setRegistrationItem(parseFloat(resp.registration_charge) || 0);
++          showBilling();
++        }
++      },
++      error: function (xhr) {
++        if (token !== state.patientRequest) return;
++        var resp = xhr.responseJSON || {};
++        $('#billing-visit-error').text(resp.message || 'The visit could not be saved. Your selections are kept; retry to continue.');
++      },
++      complete: function () {
++        state.preparingVisit = false;
++        $controls.each(function (i) { this.disabled = disabled[i]; });
++      }
++    });
+   }
+ 
+   // --- REFERRAL DOCTORS (REF. BY) ---
+@@ -1002,12 +1148,12 @@
+       }
+     }
+ 
+-    $('#charge').empty().append('<option value="">Choose a doctor first</option>').prop('disabled', true);
+-    $('#consult').prop('disabled', true);
+-    updateConsultationItem();
++    onDocChange();
+   }
+ 
+   function onDocChange() {
++    invalidateVisit(true);
++    state.chargeRequest++;
+     var docId = $('#doc').val();
+     state.doctor = null;
+     state.consultation = null;
+@@ -1050,49 +1196,6 @@
+       $('#spec').val(dSpec);
+     }
+ 
+-    // If change was made by user (not loading a draft programmatically)
+-    if (!state.isLoadingDraft) {
+-      var patientId = state.patient ? (state.patient.id || state.patient.uhid) : null;
+-      var isDiffDoc = state.draftDoctorId && String(docId) !== String(state.draftDoctorId);
+-
+-      if (patientId && window.ROUTES && window.ROUTES.patientTodayDraft) {
+-        var checkDraftUrl = window.ROUTES.patientTodayDraft + patientId + '?doctor_id=' + encodeURIComponent(docId);
+-        $.ajax({
+-          url: checkDraftUrl,
+-          type: 'GET',
+-          cache: false,
+-          success: function (resp) {
+-            if (resp && resp.success && resp.draft_bill) {
+-              loadDraftBillData(resp.draft_bill);
+-            } else {
+-              if (state.billId || isDiffDoc) {
+-                state.billId = null;
+-                state.draftDoctorId = null;
+-                state.consultPrimaryId = null;
+-                state.regPrimaryId = null;
+-                (state.services || []).forEach(function (s) { s.primary_id = null; });
+-                renderBillTable();
+-                snack('Switched to ' + esc(docName(state.doctor)) + ' · continuing new bill.');
+-              }
+-              fetchDoctorCharges(docId);
+-            }
+-          },
+-          error: function () {
+-            if (state.billId || isDiffDoc) {
+-              state.billId = null;
+-              state.draftDoctorId = null;
+-              state.consultPrimaryId = null;
+-              state.regPrimaryId = null;
+-              (state.services || []).forEach(function (s) { s.primary_id = null; });
+-              renderBillTable();
+-            }
+-            fetchDoctorCharges(docId);
+-          }
+-        });
+-        return;
+-      }
+-    }
+-
+     fetchDoctorCharges(docId);
+   }
+ 
+@@ -1102,16 +1205,9 @@
+       return;
+     }
+ 
+-    var docs = window.INITIAL_DATA.doctors || [];
+-    for (var i = 0; i < docs.length; i++) {
+-      if (String(docs[i].id) === String(docId)) {
+-        state.doctor = docs[i];
+-        break;
+-      }
+-    }
+-
++    var chargeToken = ++state.chargeRequest;
+     $('#charge').empty().append('<option value="">Loading consultation charges...</option>').prop('disabled', true);
+-    $('#consult').prop('disabled', false);
++    $('#consult').prop('disabled', true);
+ 
+     var catId = (state.patient && (state.patient.category_id || state.patient.catId)) || 1;
+     var uhid = (state.patient && (state.patient.uhid || state.patient.id)) || 0;
+@@ -1125,6 +1221,7 @@
+       type: 'GET',
+       data: { category_id: catId },
+       success: function (res) {
++        if (chargeToken !== state.chargeRequest) return;
+         var $charge = $('#charge').empty();
+         var charges = [];
+         if (res && res.charges && Array.isArray(res.charges)) {
+@@ -1167,40 +1264,30 @@
+             name: $selectedOpt.data('name') || 'Consultation',
+             amt: parseFloat($selectedOpt.data('amt')) || 0
+           };
++          $('#consult').prop('disabled', $('#billing-visit-kind').val() === '0');
+           updateConsultationItem();
+         } else {
+-          // Fallback charge from doctor model or standard
+-          var defRate = state.doctor ? (parseFloat(state.doctor.consultation_charge) || 500) : 500;
+-          $charge.append('<option value="default" data-amt="' + defRate + '" data-name="Consultation">Consultation — ' + inr(defRate, 0) + '</option>');
+-          $charge.prop('disabled', false);
+-          $charge.prop('selectedIndex', 0);
+-          state.consultation = {
+-            id: 'default',
+-            name: 'Consultation',
+-            amt: defRate
+-          };
++          state.consultation = null;
++          $charge.append('<option value="">No consultation charges configured</option>').prop('disabled', true);
++          $('#consult').prop('disabled', true);
+           updateConsultationItem();
+         }
+-        if (typeof onDone === 'function') onDone();
++        if (typeof onDone === 'function') onDone(charges.length > 0);
+       },
+       error: function () {
+-        var defRate = state.doctor ? (parseFloat(state.doctor.consultation_charge) || 500) : 500;
+-        $('#charge').empty()
+-          .append('<option value="default" data-amt="' + defRate + '" data-name="Consultation">Consultation — ' + inr(defRate, 0) + '</option>')
+-          .prop('disabled', false)
+-          .prop('selectedIndex', 0);
+-        state.consultation = {
+-          id: 'default',
+-          name: 'Consultation',
+-          amt: defRate
+-        };
++        if (chargeToken !== state.chargeRequest) return;
++        state.consultation = null;
++        $('#charge').empty().append('<option value="">Charges unavailable — select the doctor to retry</option>').prop('disabled', true);
++        $('#consult').prop('disabled', true);
+         updateConsultationItem();
+-        if (typeof onDone === 'function') onDone();
++        $('#billing-visit-error').text('Consultation charges could not be loaded. Select the doctor again to retry.');
++        if (typeof onDone === 'function') onDone(false);
+       }
+     });
+   }
+ 
+   function onChargeChange() {
++    invalidateVisit(false);
+     var $opt = $('#charge').find('option:selected');
+     if ($opt.val()) {
+       state.consultation = {
+@@ -1505,7 +1592,7 @@
+           : inr(item.rate, 0))
+         + '</td>'
+         + '<td class="num">'
+-        + (item.isConsult ? '1' : '<select class="qty" data-item-qty="' + index + '">' + qtyOptions + '</select>')
++        + ((item.isConsult || item.isRegistration) ? '1' : '<select class="qty" data-item-qty="' + index + '">' + qtyOptions + '</select>')
+         + '</td>'
+         + '<td class="num c-disc">'
+         + '<div class="ldisc">'
+@@ -1519,7 +1606,7 @@
+         + '</td>'
+         + '<td class="num l-amt">' + inr(netAmt) + '</td>'
+         + '<td>'
+-        + (item.isConsult ? '' : '<button type="button" class="btn-text x" data-item-del="' + index + '" title="Remove item" style="color:var(--md-sys-color-error);font-size:16px">&times;</button>')
++        + ((item.isConsult || item.isRegistration) ? '' : '<button type="button" class="btn-text x" data-item-del="' + index + '" title="Remove item" style="color:var(--md-sys-color-error);font-size:16px">&times;</button>')
+         + '</td>'
+         + '</tr>';
+     }).join('');
+@@ -1677,6 +1764,11 @@
+   }
+ 
+   function resetBillForm() {
++    state.visitPrepared = false;
++    state.patientRequest++;
++    state.chargeRequest++;
++    state.billRequestId = null;
++    state.billRequestPayload = null;
+     state.visitId = null;
+     state.doctor = null;
+     state.consultation = null;
+@@ -1698,7 +1790,10 @@
+     $('#spec').val('');
+     $('#ref_by').val('');
+     $('#charge').empty().append('<option value="">Select consultation...</option>');
+-    $('#consult').prop('checked', false);
++    $('#billing-visit-kind').val('1');
++    $('#billing-visit-error').empty();
++    $('#sec-visit [data-field="charge"], #sec-visit .ob-consult').show();
++    $('#consult').prop('checked', true);
+     $('#bdisc').val('');
+     $('#discount_auth_by').val('').removeClass('is-invalid');
+     $('#tot-auth-row').removeClass('is-visible').attr('hidden', true).hide().css('display', 'none');
+@@ -1712,15 +1807,21 @@
+     renderPaymentRows();
+     renderBillTable();
+     calculateTotals();
++    if (!workflowEditing()) setWorkflowStep(state.patient ? 2 : 1);
+   }
+ 
+   // --- SUBMIT BILL ---
+   function submitBill(isDraft) {
++    if (state.savingBill) return;
+     if (window.BillingGuard && window.BillingGuard.isActive()) {
+       window.BillingGuard.showAlert();
+       return;
+     }
+     isDraft = (isDraft === true);
++    if (!workflowEditing() && (!state.visitPrepared || state.workflowStep !== 3 || !state.visitId || state.preparingVisit)) {
++      snack('Create or confirm the visit before billing.');
++      return;
++    }
+ 
+     if (!state.patient) {
+       snack('Please select a patient first.');
+@@ -1834,6 +1935,9 @@
+ 
+     var $collBtn = $('#collect');
+     var $saveBtn = $('#save-only');
++    var $contextControls = $('#pt-change, #billing-edit-visit, #ob-clear, #tab-new, #tab-all, #tab-ref');
++    state.savingBill = true;
++    $contextControls.prop('disabled', true);
+     $collBtn.prop('disabled', true);
+     $saveBtn.prop('disabled', true);
+ 
+@@ -1875,12 +1979,19 @@
+       }
+     }
+ 
++    if (!workflowEditing()) {
++      payload.prepared_visit_id = state.visitId;
++      var serialized = JSON.stringify(payload);
++      if (serialized !== state.billRequestPayload) state.billRequestId = requestId();
++      state.billRequestPayload = serialized;
++      payload.request_id = state.billRequestId;
++    }
+     if (window.BillingGuard) {
+       window.BillingGuard.start('Billing is in progress, do not refresh or move from page.');
+     }
+ 
+     $.ajax({
+-      url: window.ROUTES.genOpdBill,
++      url: workflowEditing() ? window.ROUTES.genOpdBill : window.ROUTES.saveBillingWorkflow,
+       type: 'POST',
+       data: payload,
+       success: function (res) {
+@@ -1919,6 +2030,8 @@
+         snack(msg);
+       },
+       complete: function () {
++        state.savingBill = false;
++        $contextControls.prop('disabled', false);
+         if (window.BillingGuard) {
+           window.BillingGuard.stop();
+         }
+@@ -2721,6 +2834,7 @@
+       return resolved;
+     }
+ 
++    setWorkflowStep(1);
+     populateDiscountAuthorizers();
+     var initialTab = resolveInitialTab();
+     switchTab(initialTab, true);
+@@ -2749,6 +2863,10 @@
+     });
+ 
+     $('#pt-change').on('click', changePatient);
++    $(document).off('billing:select-patient.billingWorkflow').on('billing:select-patient.billingWorkflow', function (e, patient) { selectPatient(patient); });
++    $('#billing-start').off('.billingWorkflow').on('click.billingWorkflow', prepareBillingVisit);
++    $('#billing-edit-visit').off('.billingWorkflow').on('click.billingWorkflow', function () { invalidateVisit(false); });
++    $('#billing-visit-kind').off('.billingWorkflow').on('change.billingWorkflow', function () { invalidateVisit(true); updateVisitKind(); });
+ 
+     // Doctor & spec
+     $('#spec').on('change', onSpecChange);
+@@ -2764,6 +2882,7 @@
+         return;
+       }
+       state.refBy = $(this).val();
++      invalidateVisit(false);
+     });
+     $('#add-ref-btn').on('click', openAddRefModal);
+     $('#add-ref-x, #add-ref-cancel').on('click', closeAddRefModal);
+@@ -4271,6 +4390,7 @@
+   // ══════════════════════════════════════════════════════════════════════
+ 
+   function openEditPick(billId, targetMode) {
++    $('#billing-patient, #billing-visit-summary').attr('hidden', true);
+     if (!canEditBill() && !canCancelBill()) {
+       snack('You do not have permission to edit or cancel bills.');
+       return;
+@@ -4367,6 +4487,7 @@
+     }
+ 
+     switchTab('new');
++    $('#billing-patient, #billing-visit-summary').attr('hidden', true);
+     state.payAuto = false;
+     state.editing.active = true;
+     state.editing.billId = bill.id;
+--- a/public/assets/css/v2/opd-billing.css
++++ b/public/assets/css/v2/opd-billing.css
+@@ -1144,3 +1144,12 @@
+ .vt-foot { justify-content: flex-end; gap: var(--md-sys-spacing-2, 8px); }
+ .vt-foot .vt-err { flex: 1 1 auto; min-width: 0; color: var(--md-sys-color-error, #8f0000); font-size: 12px; line-height: 17px; }
+ .vt-foot .vt-err:empty { display: none; }
++
++/* Three-step New bill workflow */
++#view-new .panel.sec .sec-n{display:inline-flex}
++#view-new .ob-pt h2 .sec-n{margin-right:8px}
++.billing-step-actions{justify-content:flex-end;margin-top:var(--md-sys-spacing-4);gap:var(--md-sys-spacing-3);flex-wrap:wrap}
++.billing-visit-kind{max-width:360px;margin-bottom:var(--md-sys-spacing-4)}
++#billing-patient-hint{margin:0;color:var(--md-sys-color-on-surface-variant)}
++#br-duplicates{margin-top:var(--md-sys-spacing-4);flex-wrap:wrap}
++#billing-visit-description{display:block;margin-top:4px}
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -1209,6 +1209,9 @@
+ 
+     Route::group(['prefix' => 'v2/billing'], function () {
+         Route::get('/', [App\Http\Controllers\V2\BillingController::class, 'index'])->name('v2.billing.index');
++        Route::post('/register-patient', [App\Http\Controllers\V2\BillingWorkflowController::class, 'registerPatient'])->name('v2.billing.register_patient');
++        Route::post('/prepare-visit', [App\Http\Controllers\V2\BillingWorkflowController::class, 'prepareVisit'])->name('v2.billing.prepare_visit');
++        Route::post('/save', [App\Http\Controllers\V2\BillingWorkflowController::class, 'saveBill'])->name('v2.billing.save');
+         Route::get('/list', [App\Http\Controllers\V2\BillingController::class, 'listBills'])->name('v2.billing.list');
+         Route::get('/bill/{id}', [App\Http\Controllers\V2\BillingController::class, 'billDetails'])->name('v2.billing.details');
+         Route::post('/collect-due', [App\Http\Controllers\V2\BillingController::class, 'collectDue'])->name('v2.billing.collect_due');
+--- a/resources/views/components/v2/registration/visit-step.blade.php
++++ b/resources/views/components/v2/registration/visit-step.blade.php
+@@ -2,6 +2,7 @@
+     'mode' => 'registration',
+     'title' => 'Visit',
+     'stepNumber' => '2',
++    'billingWorkflow' => false,
+ ])
+ 
+ @php
+@@ -38,6 +39,15 @@
+     @endif
+   </div>
+   <div class="sec-body">
++    @if($billingWorkflow)
++    <div class="field billing-visit-kind">
++      <label for="billing-visit-kind">Visit reason<span class="req">*</span></label>
++      <select id="billing-visit-kind" name="add_visit">
++        <option value="1">Doctor consultation</option>
++        <option value="0">Services only</option>
++      </select>
++    </div>
++    @endif
+     <div class="grid4 {{ !$isRefByEnabled ? 'has-3cols' : '' }}">
+       <div class="field" data-field="spec">
+         <label for="spec">Specialisation @if($mode !== 'billing') <span class="opt">Optional</span> @endif</label>
+@@ -69,5 +79,11 @@
+         </div>
+       @endif
+     </div>
++    @if($billingWorkflow)
++    <p class="err" id="billing-visit-error" role="alert"></p>
++    <div class="sec-actions billing-step-actions">
++      <button type="button" class="btn btn-filled" id="billing-start">Create visit &amp; start billing</button>
++    </div>
++    @endif
+   </div>
+ </section>
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -161,3 +161,9 @@
+ 7. **Test & Verify**: Test form initialization, data loading, AJAX calls, form submissions, validations, console logs, and network responses. Verify no regressions occurred.
+ 8. **Review Git Diff**: Check the final diff carefully to ensure zero unintended changes or whitespace modifications.
+ 9. **Update Rules**: Update `AGENTS.md` if any reusable project convention or critical architectural insight is discovered.
++
++## V2 Billing Workflow
++- New bill uses three save boundaries: patient registration/selection, persisted visit, then billing.
++- `prepared_visit_id` is `visitlog.id`, the database primary key; `visitlog.visit_id` is a separate sequence number.
++- V2 workflow routes validate hospital, patient, doctor and visit ownership before invoking the shared billing engine. Keep legacy callers on their existing behavior when no prepared visit is supplied.
++- Do not load `registration-engine.js` alongside `opd-billing.js`; both bind shared component IDs and have separate state. Inline billing registration is handled by `billing-patient.js`.
+--- a/app/Http/Controllers/V2/BillingWorkflowController.php
++++ b/app/Http/Controllers/V2/BillingWorkflowController.php
+@@ -0,0 +1,204 @@
++<?php
++
++namespace App\Http\Controllers\V2;
++
++use App\Cache\DoctorCache;
++use App\Cache\InsuranceCache;
++use App\Helpers\HospitalHelper;
++use App\Http\Controllers\Controller;
++use App\Http\Controllers\admin\PatientController;
++use App\Models\admin\Patient;
++use App\Models\admin\PatientBilling;
++use App\Models\admin\Visitlog;
++use App\Models\RefUsers;
++use Illuminate\Contracts\Cache\LockTimeoutException;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Validation\ValidationException;
++
++class BillingWorkflowController extends Controller
++{
++    public function registerPatient(Request $request)
++    {
++        $this->authorizeModule('patient', 'can_create');
++        $this->authorizeModule('opd_billing', 'can_create');
++        $request->validate([
++            'patient_id' => 'prohibited',
++            'id' => 'prohibited',
++            'uhid' => 'prohibited',
++            'prefix' => 'required|string|max:20',
++            'Fname' => 'required|string|max:100',
++            'Lname' => 'nullable|string|max:100',
++            'mobile_no' => 'required|digits:10',
++            'age' => 'required|integer|min:0|max:150',
++            'dob' => 'nullable|date|before_or_equal:today',
++            'gender' => 'required|in:Male,Female,Transgender,Other',
++            'i_cover' => 'required|integer',
++            'email_id' => 'nullable|email|max:150',
++            'Address' => 'nullable|string|max:1000',
++        ]);
++        if (!InsuranceCache::all(auth()->user()->org_id)->contains('id', $request->integer('i_cover'))) {
++            throw ValidationException::withMessages(['i_cover' => 'Select an active payment category for this hospital.']);
++        }
++
++        return $this->once($request, 'register', function () use ($request) {
++            $request->replace($request->only(['prefix', 'Fname', 'Lname', 'mobile_no', 'age', 'dob', 'gender', 'i_cover', 'email_id', 'Address']));
++            $request->merge(['whatsapp_checkbox' => 1]);
++            return app(PatientController::class)->save($request);
++        });
++    }
++
++    public function prepareVisit(Request $request)
++    {
++        $this->authorizeModule('opd_visits', 'can_create');
++        $this->authorizeModule('opd_billing', 'can_create');
++        $data = $request->validate([
++            'patient_id' => 'required|integer|min:1',
++            'doctor_id' => 'required|integer|min:1',
++            'doctor_charges' => 'required|numeric|min:0',
++            'add_visit' => 'required|boolean',
++            'ref_by' => 'nullable|integer|min:1',
++            'visit_id' => 'nullable|integer|min:1',
++        ]);
++        $orgId = auth()->user()->org_id;
++        if (!DoctorCache::exists($orgId, (int) $data['doctor_id'])) {
++            throw ValidationException::withMessages(['doctor_id' => 'Select an active doctor for this hospital.']);
++        }
++        $refBy = $data['ref_by'] ?? null;
++        if (!HospitalHelper::isSettingEnabled($orgId, 'refered_by_in_visit')) {
++            $refBy = null;
++        } elseif ($refBy && !RefUsers::where('hospital_id', $orgId)->where('status', 1)->whereKey($refBy)->exists()) {
++            throw ValidationException::withMessages(['ref_by' => 'Select a referring doctor for this hospital.']);
++        }
++
++        return DB::transaction(function () use ($data, $orgId, $refBy) {
++            $patient = Patient::where('hospital_id', $orgId)->lockForUpdate()->findOrFail($data['patient_id']);
++            $query = Visitlog::where('hospital_id', $orgId)
++                ->where('patient_id', $patient->id)
++                ->where('doctor_id', $data['doctor_id'])
++                ->where('visit_status', 0)->where('emergency', 0)
++                ->whereDate('created_at', today());
++            if ($data['add_visit']) {
++                $query->whereNull('visit_type');
++            } else {
++                $query->where('visit_type', 'non-clinical');
++            }
++            if (!empty($data['visit_id'])) {
++                $visit = $query->whereKey($data['visit_id'])->first();
++                if (!$visit) {
++                    throw ValidationException::withMessages(['visit_id' => 'This visit no longer matches the patient, doctor or visit reason. Select the visit again.']);
++                }
++            } else {
++                $visit = $query->orderByDesc('id')->first();
++            }
++            if (!$visit) {
++                $visitId = app(PatientController::class)->prepareOpdBillingVisit(
++                    $patient->id, $data['doctor_id'], $data['doctor_charges'], $orgId, (bool) $data['add_visit'], $refBy
++                );
++                if ($visitId instanceof \Illuminate\Http\JsonResponse) {
++                    // The legacy helper rolls back its transaction before returning an error.
++                    throw ValidationException::withMessages(['visit_id' => 'The visit could not be saved. Please try again.']);
++                }
++                $visit = Visitlog::findOrFail($visitId);
++            } else {
++                $visit->ref_by = $refBy;
++                if (!PatientBilling::where('visit_id', $visit->id)->where('status', 1)
++                    ->where(function ($q) { $q->whereNull('is_cancelled')->orWhere('is_cancelled', 0); })->exists()) {
++                    $visit->ch = $data['doctor_charges'];
++                }
++                $visit->save();
++            }
++            $draftId = PatientBilling::where('visit_id', $visit->id)
++                ->where(function ($q) { $q->whereNull('status')->orWhere('status', 0); })
++                ->where(function ($q) { $q->whereNull('is_cancelled')->orWhere('is_cancelled', 0); })
++                ->orderByDesc('id')->value('id');
++
++            return response()->json([
++                'success' => true,
++                'visit_id' => $visit->id,
++                'visit_no' => $visit->visit_id,
++                'visit_type' => $visit->visit_type,
++                'draft_bill_id' => $draftId,
++                'registration_charge' => (int) $patient->is_registered === 1 ? 0 : (float) $patient->first_reg_charge,
++            ]);
++        });
++    }
++
++    public function saveBill(Request $request)
++    {
++        $this->authorizeModule('opd_billing', 'can_create');
++        $data = $request->validate([
++            'patient_id' => 'required|integer|min:1',
++            'doctor_id' => 'required|integer|min:1',
++            'prepared_visit_id' => 'required|integer|min:1',
++            'bill_no' => 'nullable|integer|min:1',
++            'action' => 'nullable|in:save_as_draft',
++            'action2' => 'nullable|in:gen_bill_from_draft',
++            'service_id' => 'required|array|min:1',
++            'service_id.*' => 'required|integer|min:1',
++            'charges' => 'required|array|size:' . count((array) $request->service_id),
++            'charges.*' => 'required|numeric|min:0',
++            'qty' => 'required|array|size:' . count((array) $request->service_id),
++            'qty.*' => 'required|numeric|gt:0',
++            'payment' => 'required|array',
++            'payment.*' => 'required|numeric|min:0',
++        ]);
++        $visit = Visitlog::where('hospital_id', auth()->user()->org_id)
++            ->where('patient_id', $data['patient_id'])->where('doctor_id', $data['doctor_id'])
++            ->where('visit_status', 0)->where('emergency', 0)->findOrFail($data['prepared_visit_id']);
++        Patient::where('hospital_id', auth()->user()->org_id)->findOrFail($data['patient_id']);
++
++        return $this->once($request, 'bill', function () use ($request, $data, $visit) {
++            if (!empty($data['bill_no'])) {
++                $bill = PatientBilling::where('visit_id', $visit->id)->findOrFail($data['bill_no']);
++                abort_if((int) $bill->is_cancelled === 1, 422, 'Cancelled bills cannot be billed.');
++                if ((int) $bill->status === 1) {
++                    abort_unless($request->action2 === 'gen_bill_from_draft', 409, 'This draft has already been billed.');
++                    return response()->json(['success' => true, 'bill_id' => $bill->id, 'message' => 'Bill already generated.']);
++                }
++            } else {
++                $draft = PatientBilling::where('visit_id', $visit->id)
++                    ->where(function ($q) { $q->whereNull('status')->orWhere('status', 0); })
++                    ->where(function ($q) { $q->whereNull('is_cancelled')->orWhere('is_cancelled', 0); })
++                    ->orderByDesc('id')->first();
++                abort_if($draft, 409, 'A draft already exists for this visit. Return to Visit and resume it before billing.');
++            }
++            $request->merge([
++                'add_visit' => $visit->visit_type === 'non-clinical' ? 0 : 1,
++                'ref_by' => $visit->ref_by,
++            ]);
++            return app(PatientController::class)->gen_opd_bill($request);
++        });
++    }
++
++    private function authorizeModule(string $module, string $ability): void
++    {
++        abort_unless(auth()->user()->can('module-permission', [$module, $ability]), 403, 'You do not have permission to perform this step.');
++    }
++
++    private function once(Request $request, string $operation, callable $callback)
++    {
++        $request->validate(['request_id' => 'required|uuid']);
++        $key = 'opd-workflow:' . auth()->user()->org_id . ':' . auth()->id() . ':' . $operation . ':' . $request->request_id;
++        $fingerprint = hash('sha256', json_encode($request->except(['_token', 'request_id'])));
++        // File locks work across PHP workers even when the optional Redis cache is unavailable.
++        $cache = Cache::store('file');
++        try {
++            return $cache->lock($key . ':lock', 120)->block(3, function () use ($cache, $key, $fingerprint, $callback) {
++                $saved = $cache->get($key);
++                if ($saved) {
++                    abort_unless(hash_equals($saved['fingerprint'], $fingerprint), 409, 'The request changed. Please submit it again.');
++                    return response()->json($saved['data'], $saved['status']);
++                }
++                $response = $callback();
++                if ($response->getStatusCode() < 300 && ($response->getData(true)['success'] ?? false)) {
++                    $cache->put($key, ['fingerprint' => $fingerprint, 'data' => $response->getData(true), 'status' => $response->getStatusCode()], now()->addDay());
++                }
++                return $response;
++            });
++        } catch (LockTimeoutException $e) {
++            return response()->json(['success' => false, 'message' => 'This request is still being saved. Please retry shortly.'], 409);
++        }
++    }
++}
+--- a/resources/views/components/v2/billing/patient-step.blade.php
++++ b/resources/views/components/v2/billing/patient-step.blade.php
+@@ -0,0 +1,88 @@
++@props(['initialData' => [], 'userPermissions' => []])
++<section class="panel sec" id="billing-patient" aria-labelledby="billing-patient-title">
++  <div class="sec-head">
++    <h2 class="sec-title" id="billing-patient-title"><span class="sec-n" aria-hidden="true">1</span>Patient</h2>
++    <div class="sec-actions">
++      @if(!empty($userPermissions['patient']['can_create']))
++      <button type="button" class="btn btn-outlined" id="billing-new-patient">Register new patient</button>
++      @endif
++    </div>
++  </div>
++  <div class="sec-body">
++    <p id="billing-patient-hint">Search above to select an existing patient, or register a new patient here.</p>
++    <form id="billing-register" hidden novalidate>
++      <div class="grid4">
++        <div class="field" data-field="prefix">
++          <label for="br-prefix">Title<span class="req">*</span></label>
++          <select id="br-prefix" name="prefix" required>
++            @foreach($initialData['titles'] as $title)
++            <option value="{{ $title }}">{{ $title }}</option>
++            @endforeach
++          </select>
++          <span class="err" data-error="prefix" role="alert"></span>
++        </div>
++        <div class="field" data-field="Fname">
++          <label for="br-first">First name<span class="req">*</span></label>
++          <input id="br-first" name="Fname" type="text" maxlength="100" autocomplete="off" required>
++          <span class="err" data-error="Fname" role="alert"></span>
++        </div>
++        <div class="field" data-field="Lname">
++          <label for="br-last">Last name<span class="opt">Optional</span></label>
++          <input id="br-last" name="Lname" type="text" maxlength="100" autocomplete="off">
++          <span class="err" data-error="Lname" role="alert"></span>
++        </div>
++        <div class="field" data-field="mobile_no">
++          <label for="br-mobile">Mobile number<span class="req">*</span></label>
++          <input id="br-mobile" name="mobile_no" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required>
++          <span class="err" data-error="mobile_no" role="alert"></span>
++        </div>
++        <div class="field" data-field="age">
++          <label for="br-age">Age (years)<span class="req">*</span></label>
++          <input id="br-age" name="age" type="number" min="0" max="150" step="1" required>
++          <span class="err" data-error="age" role="alert"></span>
++        </div>
++        <div class="field" data-field="dob">
++          <label for="br-dob">Date of birth<span class="opt">Optional</span></label>
++          <input id="br-dob" name="dob" type="date" max="{{ now()->toDateString() }}">
++          <span class="err" data-error="dob" role="alert"></span>
++        </div>
++        <div class="field" data-field="gender">
++          <label for="br-gender">Gender<span class="req">*</span></label>
++          <select id="br-gender" name="gender" required>
++            <option value="">Select gender</option>
++            @foreach($initialData['genders'] as $gender)
++            <option value="{{ $gender }}">{{ $gender }}</option>
++            @endforeach
++          </select>
++          <span class="err" data-error="gender" role="alert"></span>
++        </div>
++        <div class="field" data-field="i_cover">
++          <label for="br-category">Payment category<span class="req">*</span></label>
++          <select id="br-category" name="i_cover" required>
++            <option value="">Select category</option>
++            @foreach($initialData['categories'] as $id => $category)
++            <option value="{{ $id }}" @selected((string)$id === (string)$initialData['cash_category_id'])>{{ $category }}</option>
++            @endforeach
++          </select>
++          <span class="err" data-error="i_cover" role="alert"></span>
++        </div>
++        <div class="field" data-field="email_id">
++          <label for="br-email">Email<span class="opt">Optional</span></label>
++          <input id="br-email" name="email_id" type="email" maxlength="150">
++          <span class="err" data-error="email_id" role="alert"></span>
++        </div>
++        <div class="field f-wide" data-field="Address">
++          <label for="br-address">Address<span class="opt">Optional</span></label>
++          <input id="br-address" name="Address" type="text" maxlength="1000">
++          <span class="err" data-error="Address" role="alert"></span>
++        </div>
++      </div>
++      <div class="banner banner-warn" id="br-duplicates" hidden role="status"></div>
++      <p id="br-error" class="err" role="alert"></p>
++      <div class="sec-actions billing-step-actions">
++        <button type="button" class="btn btn-text" id="billing-register-cancel">Search existing patient</button>
++        <button type="submit" class="btn btn-filled" id="billing-register-save">Register &amp; continue to visit</button>
++      </div>
++    </form>
++  </div>
++</section>
+--- a/public/assets/js/v2/billing-patient.js
++++ b/public/assets/js/v2/billing-patient.js
+@@ -0,0 +1,132 @@
++(function ($) {
++  'use strict';
++
++  $(function () {
++    var $form = $('#billing-register');
++    if (!$form.length) return;
++    var pending = false;
++    var requestId = null;
++    var previousPayload = null;
++    var duplicateRequest = null;
++    var duplicateTimer = null;
++
++    function newRequestId() {
++      return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, function (c) {
++        return (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
++      });
++    }
++
++    function reset() {
++      $form[0].reset();
++      $form.find('[data-error]').empty();
++      $form.find('[aria-invalid]').removeAttr('aria-invalid');
++      $('#br-error, #br-duplicates').empty();
++      $('#br-duplicates').attr('hidden', true);
++      requestId = null;
++      previousPayload = null;
++    }
++
++    $('#billing-new-patient').off('.billingPatient').on('click.billingPatient', function () {
++      $('#ob-empty').attr('hidden', true);
++      $('#billing-patient-hint').attr('hidden', true);
++      $form.removeAttr('hidden');
++      $('#br-first').trigger('focus');
++    });
++    $('#billing-register-cancel').off('.billingPatient').on('click.billingPatient', function () {
++      if (pending) return;
++      $form.attr('hidden', true);
++      $('#billing-patient-hint, #ob-empty').removeAttr('hidden');
++      $('#q').trigger('focus');
++    });
++    $(document).off('billing:patient-selected.billingPatient').on('billing:patient-selected.billingPatient', function () {
++      $form.attr('hidden', true);
++      if (!pending) reset();
++    });
++
++    $form.off('.billingPatient')
++      .on('change.billingPatient', '#br-dob', function () {
++        if (!this.value) return;
++        var dob = new Date(this.value + 'T00:00:00');
++        var today = new Date();
++        var age = today.getFullYear() - dob.getFullYear();
++        if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
++        if (age >= 0) $('#br-age').val(age);
++      })
++      .on('input.billingPatient', '#br-mobile', function () {
++        var mobile = this.value.replace(/\D/g, '').slice(0, 10);
++        this.value = mobile;
++        clearTimeout(duplicateTimer);
++        if (duplicateRequest) duplicateRequest.abort();
++        $('#br-duplicates').attr('hidden', true).empty();
++        if (mobile.length !== 10) return;
++        duplicateTimer = setTimeout(function () {
++          duplicateRequest = $.ajax({
++            url: window.ROUTES.checkDuplicateMobile,
++            data: { mobile_no: mobile },
++            success: function (resp) {
++              if ($('#br-mobile').val() !== mobile) return;
++              var patients = resp.patients || [];
++              if (!patients.length) return;
++              var $box = $('#br-duplicates').empty().removeAttr('hidden');
++              $('<span>').text('Patients already use this mobile. Select an existing patient, or continue registering a different person.').appendTo($box);
++              patients.forEach(function (patient) {
++                $('<button type="button" class="btn btn-text">').text((patient.name || [patient.first, patient.last].filter(Boolean).join(' ')) + ' · UHID ' + patient.uhid)
++                  .on('click', function () { $(document).trigger('billing:select-patient', [patient]); }).appendTo($box);
++              });
++            },
++            error: function (xhr, status) {
++              if (status !== 'abort') $('#br-duplicates').removeAttr('hidden').text('Duplicate lookup is unavailable. Use patient search to check existing records.');
++            }
++          });
++        }, 300);
++      })
++      .on('submit.billingPatient', function (event) {
++        event.preventDefault();
++        if (pending || !$form[0].reportValidity()) return;
++        var payload = {};
++        $form.serializeArray().forEach(function (field) { payload[field.name] = field.value.trim(); });
++        var serialized = JSON.stringify(payload);
++        if (serialized !== previousPayload) requestId = newRequestId();
++        previousPayload = serialized;
++        payload.request_id = requestId;
++        payload.whatsapp_checkbox = 1;
++        pending = true;
++        $form.find('input, select, button').prop('disabled', true);
++        $('#billing-new-patient').prop('disabled', true);
++        $('#br-error').empty();
++        $form.find('[data-error]').empty();
++        $form.find('[aria-invalid]').removeAttr('aria-invalid');
++        $.ajax({
++          url: window.ROUTES.registerBillingPatient,
++          type: 'POST',
++          data: payload,
++          success: function (resp) {
++            var p = resp.patient || resp.data;
++            if (!resp.success || !p || !p.id) {
++              $('#br-error').text(resp.message || 'Registration could not be saved.');
++              return;
++            }
++            $(document).trigger('billing:select-patient', [{
++              id: p.id, uhid: p.id, name: [p.prefix, p.Fname, p.Lname].filter(Boolean).join(' '),
++              first: p.Fname, last: p.Lname, gender: p.sex, age: p.age,
++              mobile: p.mobile_no, catId: String(p.i_cover)
++            }]);
++            reset();
++          },
++          error: function (xhr) {
++            var resp = xhr.responseJSON || {};
++            $('#br-error').text(resp.message || 'Registration could not be saved. Your details are kept; retry to continue.');
++            $.each(resp.errors || {}, function (name, messages) {
++              $form.find('[data-error]').filter(function () { return $(this).data('error') === name; }).text(messages[0] || messages);
++              $form.find('[name]').filter(function () { return this.name === name; }).attr('aria-invalid', 'true');
++            });
++          },
++          complete: function () {
++            pending = false;
++            $form.find('input, select, button').prop('disabled', false);
++            $('#billing-new-patient').prop('disabled', false);
++          }
++        });
++      });
++  });
++})(jQuery);
+--- a/tests/Feature/BillingWorkflowTest.php
++++ b/tests/Feature/BillingWorkflowTest.php
+@@ -0,0 +1,265 @@
++<?php
++
++namespace Tests\Feature;
++
++use App\Cache\CacheManager;
++use App\Http\Controllers\V2\BillingWorkflowController;
++use App\Http\Controllers\admin\PatientController;
++use App\Models\User;
++use Illuminate\Contracts\Console\Kernel;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Foundation\Bootstrap\LoadConfiguration;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Route;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Support\Str;
++use Mockery;
++use Tests\TestCase;
++
++class BillingWorkflowTest extends TestCase
++{
++    private array $permissions = ['patient', 'opd_visits', 'opd_billing', 'opd_discount'];
++    private bool $referralsEnabled = false;
++    private $modelEvents;
++
++    public function createApplication()
++    {
++        $basePath = dirname((new \ReflectionClass(TestCase::class))->getFileName(), 2);
++        $app = require $basePath . '/bootstrap/app.php';
++        $app->afterBootstrapping(LoadConfiguration::class, function ($app) {
++            $app['config']->set('database.default', 'sqlite');
++            $app['config']->set('database.connections.sqlite', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
++            $app['config']->set('cache.default', 'array');
++            $app['config']->set('cache.stores.file', ['driver' => 'array']);
++            $app['config']->set('session.driver', 'array');
++            $app['config']->set('queue.default', 'sync');
++            $app['config']->set('logging.default', 'errorlog');
++            $app['config']->set('audit.enabled', false);
++            $compiledViews = sys_get_temp_dir() . '/empath-billing-workflow-views';
++            if (!is_dir($compiledViews)) mkdir($compiledViews, 0777, true);
++            $app['config']->set('view.compiled', $compiledViews);
++        });
++        $app->make(Kernel::class)->bootstrap();
++        return $app;
++    }
++
++    protected function setUp(): void
++    {
++        parent::setUp();
++        $this->modelEvents = Model::getEventDispatcher();
++        Model::unsetEventDispatcher();
++        $user = Mockery::mock(User::class)->makePartial();
++        $user->setRawAttributes(['id' => 9, 'org_id' => 1, 'is_superadmin' => 0]);
++        $user->shouldReceive('can')->andReturnUsing(function ($ability, $args) { return in_array($args[0], $this->permissions, true); });
++        $user->shouldReceive('hasRole')->andReturn(false);
++        $this->actingAs($user);
++        $this->mock(CacheManager::class, function ($mock) {
++            $mock->shouldReceive('remember')->andReturnUsing(function ($key) {
++                if (str_ends_with($key, ':doctors')) return collect([2 => (object) ['id' => 2, 'name' => 'Test Doctor']]);
++                if (str_ends_with($key, ':insurances')) return collect([1 => (object) ['id' => 1, 'insurance_agen' => 'Cash']]);
++                if (str_starts_with($key, 'hospital:settings:')) return collect(['refered_by_in_visit' => (object) ['status' => $this->referralsEnabled ? 1 : 0]]);
++                return collect();
++            });
++        });
++        Schema::create('pi', function (Blueprint $table) {
++            $table->id(); $table->integer('hospital_id'); $table->integer('i_cover')->default(1);
++            $table->boolean('is_registered')->default(false); $table->decimal('first_reg_charge')->default(100);
++            $table->string('Fname')->default('Test'); $table->string('Lname')->default('Patient');
++        });
++        Schema::create('visitlog', function (Blueprint $table) {
++            $table->id(); $table->integer('hospital_id'); $table->integer('patient_id'); $table->integer('doctor_id');
++            $table->integer('visit_id')->default(1); $table->string('visit_type')->nullable();
++            $table->integer('ref_by')->nullable(); $table->decimal('ch')->default(0);
++            $table->integer('visit_status')->default(0); $table->boolean('emergency')->default(false);
++            $table->boolean('is_visited')->default(false); $table->integer('created_by')->nullable();
++            $table->string('date')->nullable(); $table->string('visit_time')->nullable(); $table->string('last_update')->nullable();
++            $table->timestamps();
++        });
++        Schema::create('gen_pres_log_1', function (Blueprint $table) { $table->id(); $table->integer('visit_table_id'); });
++        Schema::create('ref_users', function (Blueprint $table) { $table->id(); $table->integer('hospital_id'); $table->boolean('status')->default(true); });
++        Schema::create('patient_billing', function (Blueprint $table) {
++            $table->id(); $table->integer('visit_id'); $table->integer('status')->default(0);
++            $table->boolean('is_cancelled')->default(false); $table->timestamps();
++        });
++        DB::table('pi')->insert([['id' => 10, 'hospital_id' => 1], ['id' => 20, 'hospital_id' => 2]]);
++        Route::post('/__billing/register', [BillingWorkflowController::class, 'registerPatient']);
++        Route::post('/__billing/visit', [BillingWorkflowController::class, 'prepareVisit']);
++        Route::post('/__billing/bill', [BillingWorkflowController::class, 'saveBill']);
++    }
++
++    protected function tearDown(): void
++    {
++        Model::setEventDispatcher($this->modelEvents);
++        parent::tearDown();
++    }
++
++    private function visitPayload(array $overrides = []): array
++    {
++        return array_replace(['patient_id' => 10, 'doctor_id' => 2, 'doctor_charges' => 300, 'add_visit' => 1], $overrides);
++    }
++
++    private function legacy(): PatientController
++    {
++        $legacy = Mockery::mock(PatientController::class)->makePartial();
++        $legacy->shouldReceive('copy_old_visit_data_to_new')->andReturnNull();
++        $this->app->instance(PatientController::class, $legacy);
++        return $legacy;
++    }
++
++    private function existingVisit(array $overrides = []): int
++    {
++        return DB::table('visitlog')->insertGetId(array_replace([
++            'hospital_id' => 1, 'patient_id' => 10, 'doctor_id' => 2, 'visit_type' => null,
++            'created_at' => now(), 'updated_at' => now(),
++        ], $overrides));
++    }
++
++    private function billPayload(int $visitId, array $overrides = []): array
++    {
++        return array_replace([
++            'patient_id' => 10, 'doctor_id' => 2, 'prepared_visit_id' => $visitId,
++            'request_id' => (string) Str::uuid(), 'service_id' => [5], 'charges' => [300],
++            'qty' => [1], 'payment' => ['cash' => 300],
++        ], $overrides);
++    }
++
++    public function test_visit_is_persisted_before_billing_and_retry_reuses_it(): void
++    {
++        $this->legacy();
++        $first = $this->postJson('/__billing/visit', $this->visitPayload())->assertOk()->assertJson(['success' => true, 'registration_charge' => 100]);
++        $second = $this->postJson('/__billing/visit', $this->visitPayload())->assertOk();
++        $this->assertSame($first->json('visit_id'), $second->json('visit_id'));
++        $this->assertDatabaseCount('visitlog', 1);
++        $this->assertDatabaseCount('gen_pres_log_1', 1);
++        $this->assertDatabaseCount('patient_billing', 0);
++    }
++
++    public function test_services_only_and_clinical_visits_keep_distinct_encounters(): void
++    {
++        $this->legacy();
++        $nonClinicalId = $this->existingVisit(['visit_type' => 'non-clinical']);
++        $clinical = $this->postJson('/__billing/visit', $this->visitPayload())->assertOk();
++        $this->assertNotSame($nonClinicalId, $clinical->json('visit_id'));
++        $this->postJson('/__billing/visit', $this->visitPayload(['add_visit' => 0]))->assertOk()->assertJson(['visit_id' => $nonClinicalId]);
++        $this->assertDatabaseCount('visitlog', 2);
++    }
++
++    public function test_existing_patient_does_not_incur_a_registration_fee(): void
++    {
++        DB::table('pi')->where('id', 10)->update(['is_registered' => 1]);
++        $this->existingVisit();
++        $this->postJson('/__billing/visit', $this->visitPayload())->assertOk()->assertJson(['registration_charge' => 0]);
++    }
++
++    public function test_draft_lookup_is_scoped_to_the_prepared_visit(): void
++    {
++        $other = $this->existingVisit(['visit_type' => 'non-clinical']);
++        $selected = $this->existingVisit();
++        DB::table('patient_billing')->insert([['id' => 30, 'visit_id' => $other], ['id' => 31, 'visit_id' => $selected]]);
++        $this->postJson('/__billing/visit', $this->visitPayload())->assertOk()->assertJson(['visit_id' => $selected, 'draft_bill_id' => 31]);
++    }
++
++    public function test_patient_doctor_and_visit_context_are_validated(): void
++    {
++        $this->postJson('/__billing/visit', $this->visitPayload(['patient_id' => 20]))->assertNotFound();
++        $this->postJson('/__billing/visit', $this->visitPayload(['doctor_id' => 999]))->assertUnprocessable()->assertJsonValidationErrors('doctor_id');
++        $foreignVisit = $this->existingVisit(['hospital_id' => 2, 'patient_id' => 20]);
++        $this->postJson('/__billing/visit', $this->visitPayload(['visit_id' => $foreignVisit]))->assertUnprocessable()->assertJsonValidationErrors('visit_id');
++    }
++
++    public function test_billing_permission_does_not_grant_registration_or_visit_permission(): void
++    {
++        $this->permissions = ['opd_billing'];
++        $this->postJson('/__billing/visit', $this->visitPayload())->assertForbidden();
++        $this->postJson('/__billing/register', [])->assertForbidden();
++    }
++
++    public function test_registration_retries_do_not_create_another_patient(): void
++    {
++        $legacy = $this->legacy();
++        $legacy->shouldReceive('save')->once()->andReturnUsing(function () {
++            return response()->json(['success' => true, 'patient_id' => 11, 'patient' => ['id' => 11]]);
++        });
++        $payload = ['request_id' => (string) Str::uuid(), 'prefix' => 'Mr.', 'Fname' => 'Test', 'Lname' => 'Patient', 'mobile_no' => '9999900010', 'age' => 30, 'gender' => 'Male', 'i_cover' => 1];
++        $this->postJson('/__billing/register', $payload)->assertOk()->assertJson(['patient_id' => 11]);
++        $this->postJson('/__billing/register', $payload)->assertOk()->assertJson(['patient_id' => 11]);
++        $this->postJson('/__billing/register', array_replace($payload, ['Fname' => 'Changed']))->assertConflict();
++    }
++
++    public function test_registration_cannot_modify_an_existing_patient_or_use_another_hospital_category(): void
++    {
++        $payload = ['request_id' => (string) Str::uuid(), 'prefix' => 'Mr.', 'Fname' => 'Test', 'mobile_no' => '9999900010', 'age' => 30, 'gender' => 'Male', 'i_cover' => 999];
++        $this->postJson('/__billing/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('i_cover');
++        $this->postJson('/__billing/register', array_replace($payload, ['patient_id' => 10]))->assertUnprocessable()->assertJsonValidationErrors('patient_id');
++    }
++
++    public function test_bill_retries_preserve_the_exact_visit_and_do_not_collect_twice(): void
++    {
++        $visitId = $this->existingVisit();
++        $legacy = $this->legacy();
++        $legacy->shouldReceive('gen_opd_bill')->once()->andReturnUsing(function ($request) use ($visitId) {
++            $this->assertSame($visitId, $request->prepared_visit_id);
++            $id = DB::table('patient_billing')->insertGetId(['visit_id' => $visitId, 'status' => 1]);
++            return response()->json(['success' => true, 'bill_id' => $id]);
++        });
++        $payload = $this->billPayload($visitId);
++        $first = $this->postJson('/__billing/bill', $payload)->assertOk();
++        $this->postJson('/__billing/bill', $payload)->assertOk()->assertJson(['bill_id' => $first->json('bill_id')]);
++        $this->assertDatabaseCount('patient_billing', 1);
++        $this->assertDatabaseCount('visitlog', 1);
++    }
++
++    public function test_bill_rejects_a_foreign_visit_or_a_bill_for_another_encounter(): void
++    {
++        $selected = $this->existingVisit();
++        $foreign = $this->existingVisit(['hospital_id' => 2, 'patient_id' => 20]);
++        DB::table('patient_billing')->insert(['id' => 40, 'visit_id' => $foreign]);
++        $this->postJson('/__billing/bill', $this->billPayload($foreign))->assertNotFound();
++        $this->postJson('/__billing/bill', $this->billPayload($selected, ['bill_no' => 40]))->assertNotFound();
++    }
++
++    public function test_finalizing_an_already_generated_draft_does_not_repeat_payment(): void
++    {
++        $visitId = $this->existingVisit();
++        DB::table('patient_billing')->insert(['id' => 41, 'visit_id' => $visitId, 'status' => 1]);
++        $this->legacy()->shouldNotReceive('gen_opd_bill');
++        $this->postJson('/__billing/bill', $this->billPayload($visitId, ['bill_no' => 41, 'action2' => 'gen_bill_from_draft']))->assertOk()->assertJson(['bill_id' => 41]);
++    }
++
++    public function test_an_unloaded_draft_must_be_resumed_before_saving(): void
++    {
++        $visitId = $this->existingVisit();
++        DB::table('patient_billing')->insert(['visit_id' => $visitId]);
++        $this->postJson('/__billing/bill', $this->billPayload($visitId))->assertConflict();
++    }
++
++    public function test_legacy_billing_rejects_an_explicit_visit_for_another_patient(): void
++    {
++        $visitId = $this->existingVisit(['patient_id' => 20]);
++        $request = \Illuminate\Http\Request::create('/patient/gen-opd_bill', 'POST', $this->billPayload($visitId));
++        $response = $this->legacy()->gen_opd_bill($request);
++        $this->assertSame(422, $response->getStatusCode());
++        $this->assertDatabaseCount('patient_billing', 0);
++    }
++
++    public function test_referrals_follow_the_hospital_setting_and_ownership(): void
++    {
++        $visitId = $this->existingVisit();
++        DB::table('ref_users')->insert([['id' => 3, 'hospital_id' => 1], ['id' => 4, 'hospital_id' => 2]]);
++        $this->postJson('/__billing/visit', $this->visitPayload(['ref_by' => 3]))->assertOk();
++        $this->assertDatabaseHas('visitlog', ['id' => $visitId, 'ref_by' => null]);
++        $this->referralsEnabled = true;
++        $this->postJson('/__billing/visit', $this->visitPayload(['ref_by' => 4]))->assertUnprocessable()->assertJsonValidationErrors('ref_by');
++        $this->postJson('/__billing/visit', $this->visitPayload(['ref_by' => 3]))->assertOk();
++        $this->assertDatabaseHas('visitlog', ['id' => $visitId, 'ref_by' => 3]);
++    }
++
++    public function test_billing_rejects_missing_or_invalid_item_quantities(): void
++    {
++        $visitId = $this->existingVisit();
++        $this->postJson('/__billing/bill', $this->billPayload($visitId, ['charges' => []]))->assertUnprocessable()->assertJsonValidationErrors('charges');
++        $this->postJson('/__billing/bill', $this->billPayload($visitId, ['qty' => [0]]))->assertUnprocessable()->assertJsonValidationErrors('qty.0');
++        $this->assertDatabaseCount('patient_billing', 0);
++    }
++}

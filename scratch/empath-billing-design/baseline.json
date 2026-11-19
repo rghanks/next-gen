@@ -1,0 +1,10 @@
+[
+  {
+    "path": "resources/views/v2/billing/index.blade.php",
+    "hash": "B2056FAE2CA722D1A2C9A2051672C2AAC5C2BC6207C23AB46D501E6C7844A438"
+  },
+  {
+    "path": "public/assets/js/v2/opd-billing.js",
+    "hash": "219676F7BEBCA37C10A53CC219F821FE71A81D19206CD0D44839DDD0E593FF58"
+  }
+]

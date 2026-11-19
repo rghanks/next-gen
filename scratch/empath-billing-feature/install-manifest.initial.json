@@ -1,0 +1,62 @@
+[
+  {
+    "path": "app/Http/Controllers/V2/BillingController.php",
+    "originalHash": "4196F4B33CD843026A55ACEC4C6B73C559279C78FFE9BB02822E1AAE6E8F7F62",
+    "stagedHash": "A47A21C6A982474E57E668C986754A53EA2F0203D146C760D302D7CABEE9CAA3"
+  },
+  {
+    "path": "app/Http/Controllers/admin/PatientController.php",
+    "originalHash": "A95158E380F8F70B2A09F88CF59DF22B3DBC571808689FF8BB7ACE3F584F3E3D",
+    "stagedHash": "4A0E7645ACFF658966F1793C6815627EBA3D2717265AE83190745513184D62AF"
+  },
+  {
+    "path": "resources/views/v2/billing/index.blade.php",
+    "originalHash": "50673EC50A103123EA5A3E7EBA677C82DB97C2D39542500EFCE591CAA793B13E",
+    "stagedHash": "B2056FAE2CA722D1A2C9A2051672C2AAC5C2BC6207C23AB46D501E6C7844A438"
+  },
+  {
+    "path": "public/assets/js/v2/opd-billing.js",
+    "originalHash": "DE6782BBB45CA0085B88217BDDD1D0EF61C6AA3B029E3F1C6B2661DAA1DFA340",
+    "stagedHash": "219676F7BEBCA37C10A53CC219F821FE71A81D19206CD0D44839DDD0E593FF58"
+  },
+  {
+    "path": "public/assets/css/v2/opd-billing.css",
+    "originalHash": "25C9F46D5CE56661363D6EE6F38481FE9D22E8B0F3DF799678CF51ED3B57DEBD",
+    "stagedHash": "FA7CB8763B528C52211556D5A45EFCFAEE40DD18D207E48150DAE3F8208916E7"
+  },
+  {
+    "path": "routes/web.php",
+    "originalHash": "6B797BD6E6AE574F531FA62A17BA5235004DFDB717E7D0692185AAE8690D910A",
+    "stagedHash": "507C1188C2F11548B9C6E51C043F226A544A6AD0B4F8C6D917338526FDE7F6CA"
+  },
+  {
+    "path": "resources/views/components/v2/registration/visit-step.blade.php",
+    "originalHash": "9F74C005BAB91765A8260BDB8B302B31200974EEED700B3872AA37B7960118D6",
+    "stagedHash": "08C30369FCAC3B13C2993A3E1C1857AF9E3A8738153FC81FC9DFA7C9F5B277EA"
+  },
+  {
+    "path": "AGENTS.md",
+    "originalHash": "7602699CA8CF672E64F8796632ABEE41F8034DA229F64DE7E9086184A4461F1A",
+    "stagedHash": "83F882159305E2E558E7C129B3C0699BDCDD5E2995255638A37AA4A75791D2BC"
+  },
+  {
+    "path": "app/Http/Controllers/V2/BillingWorkflowController.php",
+    "originalHash": null,
+    "stagedHash": "B602210036924EAE44CE81AFD516F1E9297A3FF526F664786B0BF6053082CCFA"
+  },
+  {
+    "path": "resources/views/components/v2/billing/patient-step.blade.php",
+    "originalHash": null,
+    "stagedHash": "398BED53A4EA9AF656DD465BBC965BC00427F6830E1C8BA487288470C82D9BED"
+  },
+  {
+    "path": "public/assets/js/v2/billing-patient.js",
+    "originalHash": null,
+    "stagedHash": "37EC4E21543B3BFC966B2131BED1C1C3F78933ADFD31C192CF6C8EEE26AE32AD"
+  },
+  {
+    "path": "tests/Feature/BillingWorkflowTest.php",
+    "originalHash": null,
+    "stagedHash": "D80ECF6D2982DEC55DA3B3E6AC61BFDDBF501A748EE1879CD99FD12B9BAEB5D6"
+  }
+]

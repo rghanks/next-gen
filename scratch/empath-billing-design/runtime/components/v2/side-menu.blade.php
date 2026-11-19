@@ -1,0 +1,1 @@
+<aside aria-label="Test fixture">Billing test</aside>

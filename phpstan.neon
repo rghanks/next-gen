@@ -1,0 +1,26 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/Domain/Lab
+        - app/Http/Controllers/Lab
+        - app/Http/Requests/Lab
+        - app/Http/Resources/Lab
+        - app/Models/Legacy
+    level: 6
+    ignoreErrors:
+        -
+            identifier: missingType.generics
+        -
+            identifier: missingType.iterableValue
+        -
+            identifier: property.notFound
+        -
+            identifier: argument.type
+        -
+            identifier: argument.unresolvableType
+        -
+            identifier: method.unresolvableReturnType
+        -
+            identifier: nullCoalesce.offset

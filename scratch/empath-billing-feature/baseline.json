@@ -1,0 +1,26 @@
+[
+  {
+    "path": "app/Http/Controllers/V2/BillingController.php",
+    "hash": "4196F4B33CD843026A55ACEC4C6B73C559279C78FFE9BB02822E1AAE6E8F7F62"
+  },
+  {
+    "path": "app/Http/Controllers/admin/PatientController.php",
+    "hash": "A95158E380F8F70B2A09F88CF59DF22B3DBC571808689FF8BB7ACE3F584F3E3D"
+  },
+  {
+    "path": "resources/views/v2/billing/index.blade.php",
+    "hash": "50673EC50A103123EA5A3E7EBA677C82DB97C2D39542500EFCE591CAA793B13E"
+  },
+  {
+    "path": "public/assets/js/v2/opd-billing.js",
+    "hash": "DE6782BBB45CA0085B88217BDDD1D0EF61C6AA3B029E3F1C6B2661DAA1DFA340"
+  },
+  {
+    "path": "public/assets/css/v2/opd-billing.css",
+    "hash": "25C9F46D5CE56661363D6EE6F38481FE9D22E8B0F3DF799678CF51ED3B57DEBD"
+  },
+  {
+    "path": "routes/web.php",
+    "hash": "6B797BD6E6AE574F531FA62A17BA5235004DFDB717E7D0692185AAE8690D910A"
+  }
+]

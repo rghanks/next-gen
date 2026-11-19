@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+// Yakpro-Po Configuration for Laravel Applications
+// Preserves Class & Method names for Laravel Routing & Autoloading
+// Deeply obfuscates variables, string literals, and control flow logic
+
+$conf->t_ignore_pre_defined_classes = 'all';
+
+// Keep Class & Method names intact so Laravel Router and Container work seamlessly
+$conf->obfuscate_class_name         = false;
+$conf->obfuscate_interface_name     = false;
+$conf->obfuscate_trait_name         = false;
+$conf->obfuscate_function_name      = false;
+$conf->obfuscate_method_name        = false;
+$conf->obfuscate_property_name      = false;
+
+// Heavily obfuscate internal code & logic
+$conf->obfuscate_variable_name      = true;
+$conf->obfuscate_constant_name      = true;
+$conf->obfuscate_string_literal     = true;
+$conf->shuffle_stmts                = true;
+$conf->strip_indentation            = true;
+$conf->abort_on_error               = false;

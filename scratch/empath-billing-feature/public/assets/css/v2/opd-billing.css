@@ -1,0 +1,1155 @@
+/* ══════ OPD billing, standalone ══════ */
+/* New bill and All bills: underlined tabs at the start of the bar */
+.topbar .ob-tabs{display:flex; align-items:stretch; align-self:stretch; flex:none;
+  margin-block:calc(-1 * var(--md-sys-spacing-2)); margin-bottom:-1px; margin-left:calc(-1 * var(--md-sys-spacing-5))}
+@media (max-width:860px){ .topbar .ob-tabs{margin-left:0} }
+.topbar .ob-tabs button{display:inline-flex; align-items:center; padding:0 var(--md-sys-spacing-5);
+  border:0; border-bottom:3px solid transparent; background:none; cursor:pointer; white-space:nowrap;
+  font-size:13.5px; line-height:20px; font-weight:600; letter-spacing:.1px; color:var(--md-sys-color-on-surface-variant)}
+.topbar .ob-tabs button:hover{background:var(--md-sys-color-surface-container-low); color:var(--md-sys-color-on-surface)}
+.topbar .ob-tabs button[aria-selected="true"]{background:var(--md-sys-color-primary-container);
+  color:var(--md-sys-color-on-primary-container); border-bottom-color:var(--md-sys-color-primary); font-weight:700}
+.topbar .ob-tabs button:focus-visible{outline-offset:-3px}
+@media (max-width:620px){ .topbar .ob-tabs button{padding-inline:var(--md-sys-spacing-3)} }
+
+.ob-work{width:100%; max-width:1180px; margin:0 auto; padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5) var(--md-sys-spacing-6); display:flex; flex-direction:column; gap:var(--md-sys-spacing-4); flex:1}
+#view-new, #view-all{display:flex; flex-direction:column; flex:1; min-height:0}
+#view-new[hidden], #view-all[hidden]{display:none}
+.ob-form, .ob-paid{display:flex; flex-direction:column; gap:var(--md-sys-spacing-4)}
+.ob-form[hidden], .ob-paid[hidden]{display:none}
+.ob-empty{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:56px var(--md-sys-spacing-5);
+  border:1px dashed var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-medium); background:var(--md-sys-color-surface-container-lowest);
+  font-size:13px; line-height:19px; color:var(--md-sys-color-on-surface-variant)}
+.ob-empty[hidden]{display:none}
+.ob-empty svg{width:34px; height:34px; color:var(--md-sys-color-primary); margin-bottom:6px}
+.ob-empty b{font-size:15px; font-weight:600; color:var(--md-sys-color-on-surface)}
+.ob-empty span{max-width:460px}
+.ob-empty a{color:var(--md-sys-color-primary); font-weight:500; text-decoration:underline}
+.ob-pt{align-items:center}
+.ob-pt .btn-text{flex:none}
+.pt-doc-badge{display:inline-flex; align-items:center}
+.pt-doc-badge[hidden]{display:none !important}
+.doc-label{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 12px;
+  background:var(--md-sys-color-surface-container-high, #eef2f6);
+  border:1px solid var(--md-sys-color-outline-variant, #cbd5e1);
+  border-radius:var(--md-sys-shape-corner-full, 9999px);
+  font-size:13px; line-height:20px; color:var(--md-sys-color-on-surface, #1e293b);
+  cursor:default; margin:0;
+}
+.doc-label .doc-lbl-title{
+  font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--md-sys-color-on-surface-variant, #64748b);
+}
+.doc-label .doc-lbl-name{
+  font-weight:600; color:var(--md-sys-color-primary, #0f7872);
+}
+.doc-label .doc-lbl-spec{
+  font-size:12px; font-weight:400; color:var(--md-sys-color-on-surface-variant, #64748b);
+}
+.ob-consult{display:flex; flex-direction:column; justify-content:flex-end}
+.ob-consult .lbl{display:block; font-size:14px; line-height:20px; font-weight:500; letter-spacing:.1px; margin-bottom:4px}
+.ob-consult .check{display:inline-flex; align-items:center; gap:8px; min-height:36px; margin:0; cursor:pointer; grid-template-columns:none}
+.ob-consult .check input{width:16px; height:16px; margin:0; cursor:pointer; flex:none}
+.ob-consult .c-label{font-size:13px; font-weight:500; color:var(--md-sys-color-on-surface); line-height:20px; user-select:none; white-space:nowrap}
+.ob-crow{display:flex; align-items:center; gap:var(--md-sys-spacing-4); flex-wrap:wrap; min-height:38px}
+.ob-crow .check{display:flex; align-items:center; gap:8px; grid-template-columns:none}
+.ob-crow .check input{margin:0}
+.ob-crow .seg button{min-height:30px; padding-inline:var(--md-sys-spacing-3); font-size:12.5px; font-variant-numeric:tabular-nums}
+.ob-crow .seg button[disabled]{opacity:.45; cursor:not-allowed}
+.sec-b .sec-head .svc-find{width:min(340px, 100%)}
+.bill .b-sub{font-variant-numeric:tabular-nums; display:block; font-size:11.5px; color:var(--md-sys-color-on-surface-variant)}
+.bill .b-what{display:block; font-weight:500}
+
+/* the bill as a document */
+.bd-panel .sec-actions .btn{min-height:32px}
+.bd-wa{color:#128c4a !important; border-color:color-mix(in oklab, #25d366 55%, #ffffff) !important; gap:6px}
+.bd-wa svg{width:17px; height:17px}
+.bd-facts{grid-template-columns:repeat(4,minmax(0,1fr)); margin-bottom:var(--md-sys-spacing-4)}
+.bd-tbl td:last-child,.bd-tbl th:last-child{width:auto}
+.bd-tbl td,.bd-tbl th{padding-right:var(--md-sys-spacing-3)}
+.bd-pays{margin-top:var(--md-sys-spacing-4)}
+.bd-pays tfoot td{font-weight:600; border-top:1px solid var(--md-sys-color-outline-variant); padding-top:8px}
+.ob-back{align-self:flex-start; padding-inline:4px 12px; gap:2px}
+#all-detail{display:flex; flex-direction:column; gap:var(--md-sys-spacing-3)}
+#all-detail[hidden],#all-list[hidden]{display:none}
+
+/* All bills: the filter row */
+.ab-filter{top:48px}
+.af-row{display:flex; align-items:flex-end; gap:var(--md-sys-spacing-3); flex-wrap:wrap}
+.af-row .field{min-width:0}
+.af-no{flex:0 1 150px}
+.af-pt{flex:1 1 220px}
+.af-d{flex:0 1 160px}
+.af-or{align-self:flex-end; padding-bottom:9px; font-size:12px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:var(--md-sys-color-on-surface-variant)}
+.af-btns{display:flex; gap:var(--md-sys-spacing-2)}
+input[type=date]{width:100%; min-height:var(--md-sys-min-target); padding:8px var(--md-sys-spacing-3); border:1px solid var(--md-sys-color-outline); border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-surface-container-lowest); color:var(--md-sys-color-on-surface); font-family:inherit; font-size:14px; line-height:20px}
+input[type=date]:focus{outline:none; border:2px solid var(--md-sys-color-primary); padding:7px 11px}
+
+/* All bills: the summary and the table */
+.al-sum{display:flex; flex-wrap:wrap; gap:6px 22px; align-items:baseline; font-size:13px; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+.al-sum b{color:var(--md-sys-color-on-surface); font-weight:600}
+.al-sum .al-range{margin-left:auto}
+.al-panel{overflow:hidden}
+.al-tbl .soft-l{display:block; font-size:12px; line-height:17px; color:var(--md-sys-color-on-surface-variant)}
+.al-tbl td{vertical-align:top}
+.al-tbl .al-no{font-weight:600; font-variant-numeric:tabular-nums; color:var(--md-sys-color-primary); cursor:pointer}
+.al-tbl .al-no:hover{text-decoration:underline}
+.al-tbl td.al-act{white-space:nowrap}
+.al-tbl .al-act .link{font-size:13px; margin-left:14px}
+.al-tbl .al-act .link:first-child{margin-left:0}
+
+/* Row overflow kebab menu */
+.al-more{
+  width:30px; height:30px; margin-left:6px; display:inline-flex; align-items:center; justify-content:center;
+  vertical-align:middle; cursor:pointer; border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-full); background:none; color:var(--md-sys-color-on-surface-variant);
+}
+.al-more:hover{background:var(--md-sys-color-surface-container-low); color:var(--md-sys-color-on-surface)}
+.al-more[aria-expanded="true"]{background:var(--md-sys-color-surface-container); color:var(--md-sys-color-on-surface)}
+.al-more svg{width:18px; height:18px}
+#row-menu{
+  position:fixed; z-index:100; min-width:208px; padding:var(--md-sys-spacing-2);
+  background:var(--md-sys-color-surface-container-lowest);
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium); box-shadow:var(--md-sys-elevation-level3);
+}
+#row-menu[hidden]{display:none}
+#row-menu .rm-head{
+  padding:var(--md-sys-spacing-1) var(--md-sys-spacing-3) var(--md-sys-spacing-2);
+  font-size:12px; line-height:17px; letter-spacing:.4px; color:var(--md-sys-color-on-surface-variant);
+  font-variant-numeric:tabular-nums; margin:0;
+}
+#row-menu button{
+  width:100%; display:flex; align-items:center; gap:var(--md-sys-spacing-3); text-align:left; cursor:pointer;
+  min-height:var(--md-sys-min-target); padding:var(--md-sys-spacing-2) var(--md-sys-spacing-3);
+  border:0; border-radius:var(--md-sys-shape-corner-small); background:none;
+  color:var(--md-sys-color-on-surface); font-size:14px; line-height:20px; letter-spacing:.1px;
+}
+#row-menu button:hover{background:var(--md-sys-color-surface-container-low)}
+#row-menu button svg{width:18px; height:18px; flex:none; color:var(--md-sys-color-primary)}
+#row-menu .rm-sep{height:1px; background:var(--md-sys-color-outline-variant); margin:var(--md-sys-spacing-2) 0}
+#row-menu .rm-danger{color:var(--md-sys-color-error)}
+#row-menu .rm-danger svg{color:var(--md-sys-color-error)}
+#row-menu .rm-danger:hover{background:var(--md-sys-color-error-container)}
+
+.b-wa{width:30px; height:30px; margin-left:10px; display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; cursor:pointer;
+  border:1px solid color-mix(in oklab, #25d366 45%, #ffffff); border-radius:var(--md-sys-shape-corner-full); background:none; color:#128c4a}
+.b-wa:hover{background:color-mix(in oklab, #25d366 12%, #ffffff)}
+.b-wa svg{width:17px; height:17px}
+.al-tbl tbody tr:hover td{background:var(--md-sys-color-surface-container-low)}
+.al-none{margin:0; padding:40px var(--md-sys-spacing-5); text-align:center; font-size:13px; color:var(--md-sys-color-on-surface-variant)}
+.al-none[hidden]{display:none}
+
+@media (max-width:1100px){
+  .al-tbl thead{display:none}
+  .al-tbl, .al-tbl tbody{display:block}
+  .al-tbl tbody tr{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px 14px; padding:12px var(--md-sys-spacing-4); border-bottom:1px solid var(--md-sys-color-outline-variant)}
+  .al-tbl tbody td{display:block; padding:0; border:0; white-space:normal; text-align:left}
+  .al-tbl td[data-k]::before{content:attr(data-k); display:block; font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--md-sys-color-on-surface-variant)}
+  .al-tbl td[data-k="Bill no."]{grid-column:1}
+  .al-tbl td.al-pt{grid-column:2 / -1}
+  .al-tbl td.al-act{grid-column:1 / -1; display:flex; align-items:center; gap:18px}
+  .al-tbl .al-act .link{margin:0}
+  .al-tbl .b-wa{margin:0}
+}
+@media (max-width:760px){
+  .ob-work{padding-inline:var(--md-sys-spacing-4)}
+  .bd-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .al-sum .al-range{margin-left:0; flex-basis:100%}
+  .af-no,.af-pt{flex:1 1 100%}
+  .af-or{display:none}
+  .af-d{flex:1 1 calc(50% - 8px)}
+  .af-btns{flex:1 1 100%}
+  .af-btns .btn-filled{flex:1}
+  .topbar .who{display:none}
+}
+@media (max-width:520px){
+  .al-tbl tbody tr{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .al-tbl td.al-pt{grid-column:1 / -1}
+  .ob-pt{flex-direction:column; align-items:stretch}
+  .ob-pt .btn-text{align-self:flex-start; padding-inline:0}
+  .bd-panel .sec-head{flex-wrap:wrap}
+}
+
+/* Review fixes */
+#paid-doc, #al-doc{display:flex; flex-direction:column; gap:var(--md-sys-spacing-4)}
+.af-row input{height:36px; min-height:0; padding-block:0}
+.af-row input:focus{padding-block:0}
+.al-wrap{overflow-x:auto}
+.al-tbl th,.al-tbl td{padding-inline:12px}
+
+@media (max-width:1280px){
+  .al-tbl thead{display:none}
+  .al-tbl, .al-tbl tbody{display:block}
+  .al-tbl tbody tr{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px 16px; padding:14px var(--md-sys-spacing-4); border-bottom:1px solid var(--md-sys-color-outline-variant)}
+  .al-tbl tbody td, .al-tbl tbody td.num{display:block; padding:0; border:0; white-space:normal; text-align:left}
+  .al-tbl td[data-k]::before{content:attr(data-k); display:block; font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--md-sys-color-on-surface-variant)}
+  .al-tbl td.al-pt, .al-tbl td[data-k="Doctor"]{grid-column:span 2}
+  .al-tbl td.al-act{grid-column:span 2; display:flex; align-items:center; justify-content:flex-end; gap:16px; align-self:end}
+  .al-tbl .al-act .link{margin:0}
+  .al-tbl .b-wa{margin:0}
+}
+@media (max-width:620px){
+  .al-tbl tbody tr{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .al-tbl td.al-pt, .al-tbl td[data-k="Doctor"]{grid-column:1 / -1}
+  .al-tbl td.al-act{grid-column:1 / -1; justify-content:flex-start}
+}
+
+/* Billing table */
+.bill th.c-sn,.bill td.c-sn{width:46px; text-align:left; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+@container (min-width:600px){
+  #sec-bill .bill{table-layout:fixed}
+  #sec-bill .bill th.c-sn,#sec-bill .bill td.c-sn{width:46px}
+  #sec-bill .bill th:nth-child(3){width:96px}
+  #sec-bill .bill th:nth-child(4){width:92px}
+  #sec-bill .bill th:nth-child(5){width:176px}
+  #sec-bill .bill th:nth-child(6){width:124px}
+  #sec-bill .bill th:nth-child(7){width:44px}
+  #sec-bill .totals{padding-right:44px}
+  #sec-bill .bill th,#sec-bill .bill td{padding-right:16px}
+  #sec-bill .bill th:last-child,#sec-bill .bill td:last-child{padding-right:0}
+}
+#sec-bill .bill th:nth-child(4),#sec-bill .bill td:nth-child(4){text-align:center}
+#sec-bill .bill th:nth-child(5),#sec-bill .bill td:nth-child(5){text-align:center}
+#sec-bill .bill td:nth-child(7){text-align:center}
+#sec-bill .bill td{vertical-align:middle}
+#sec-bill .bill .ldisc{margin-inline:auto}
+#sec-bill .bill .d-eq{text-align:center}
+#sec-bill .bill select.qty{text-align:left}
+
+.bd-tbl th:nth-child(3),.bd-tbl td:nth-child(3){text-align:center}
+@container (min-width:600px){
+  .bd-tbl{table-layout:fixed}
+  .bd-tbl th:nth-child(2){width:96px} .bd-tbl th:nth-child(3){width:72px} .bd-tbl th:nth-child(4){width:120px} .bd-tbl th:nth-child(5){width:124px}
+}
+
+/* Consultation charges */
+.ob-charges{margin-top:0; gap:6px}
+.ob-charges .chip{font-size:12.5px; letter-spacing:.2px}
+.ob-charges .chip b{font-weight:600; margin-left:4px; font-variant-numeric:tabular-nums}
+.ob-charges .chip[disabled]{opacity:.45; cursor:not-allowed}
+.ob-hint{font-size:13px; color:var(--md-sys-color-on-surface-variant)}
+.ob-crow{align-items:flex-start}
+.ob-crow .check{padding-top:5px}
+
+/* Part-paid status */
+.vv-ok.is-part{background:var(--md-sys-color-warning-container); color:var(--md-sys-color-on-warning-container)}
+.bd-panel .sec-title .pill{height:24px; margin-left:8px; font-size:11.5px; vertical-align:2px}
+.bd-pays .soft{color:var(--md-sys-color-on-surface-variant)}
+.bd-pays tr.bd-due td{color:var(--md-sys-color-warning); font-weight:600; border-top:0; padding-top:2px}
+
+/* Collect due section */
+.bd-collect{margin-top:var(--md-sys-spacing-5); padding:var(--md-sys-spacing-4); border:1px solid color-mix(in oklab, var(--md-sys-color-warning) 35%, #ffffff); border-radius:var(--md-sys-shape-corner-small); background:color-mix(in oklab, var(--md-sys-color-warning-container) 35%, #ffffff)}
+.bd-crow{display:grid; grid-template-columns:150px 160px minmax(0,1fr) auto; gap:var(--md-sys-spacing-2); align-items:center}
+.bd-crow .affix input{text-align:right}
+.bd-crow input:disabled{background:var(--md-sys-color-surface-container-low)}
+@media (max-width:620px){ .bd-crow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .bd-crow input[data-c="txn"]{grid-column:1 / -1} .bd-crow .btn{grid-column:1 / -1} }
+
+.al-due, .al-due b{color:var(--md-sys-color-warning) !important; font-weight:600}
+.af-st .lbl{display:block; font-size:14px; line-height:20px; font-weight:500; margin-bottom:4px}
+.af-st .seg button{min-height:30px; padding-inline:var(--md-sys-spacing-3); font-size:12.5px}
+@media (max-width:760px){ .af-st{flex:1 1 100%} }
+.bill th:nth-child(3),.bill td:nth-child(3){display:table-cell}
+
+.al-tbl .b-ic{width:30px; height:30px; margin-left:6px; display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-full); background:none; color:var(--md-sys-color-primary)}
+.al-tbl .b-ic:hover{background:var(--md-sys-color-surface-container-low)}
+.al-tbl .b-ic svg{width:16px; height:16px}
+.al-tbl .b-wa{margin-left:6px}
+@media (max-width:1280px){ .al-tbl .b-ic{margin:0} }
+
+@container (max-width:430px){
+  #sec-bill .bill th,#sec-bill .bill td{padding-right:4px}
+  #sec-bill .bill select.qty{width:50px; padding:2px 16px 2px 6px; background-position:right 2px center; background-size:14px}
+  #sec-bill .bill .c-disc{width:auto} #sec-bill .bill .ldisc{width:82px}
+  #sec-bill .bill .dunit button{width:20px}
+  #sec-bill .bill .ldisc input{padding-inline:5px}
+  #sec-bill .bill .x{width:26px}
+}
+
+.al-tbl th,.al-tbl td{padding-inline:9px}
+.al-tbl .al-act .link{margin-left:0}
+
+/* Consultation checkbox */
+.ob-consult .check{display:flex; align-items:center; gap:8px; min-height:32px; grid-template-columns:none}
+.ob-consult .check input{margin:0}
+@media (max-width:620px){ .ob-consult > .lbl{display:none} }
+
+/* All bills paging */
+#view-all .ob-work{max-width:none}
+.al-pager{display:flex; align-items:center; gap:8px 20px; flex-wrap:wrap; padding:10px var(--md-sys-spacing-4); border-top:1px solid var(--md-sys-color-outline-variant); font-size:13px; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+.al-pager[hidden]{display:none}
+.pg-size{display:flex; align-items:center; gap:8px; margin-left:auto}
+.pg-size select{height:32px; min-height:32px; padding:0 28px 0 10px; width:auto; font-size:13px}
+.pg-nums{display:flex; align-items:center; gap:4px}
+.pg-btn{min-width:32px; height:32px; padding:0 8px; border-radius:8px; border:1px solid transparent; background:none; color:var(--md-sys-color-on-surface); font:inherit; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
+.pg-btn svg{width:18px; height:18px}
+.pg-btn:hover:not([disabled]){background:var(--md-sys-color-surface-container-low)}
+.pg-btn[aria-current="page"]{border-color:var(--md-sys-color-primary); color:var(--md-sys-color-primary); font-weight:600; background:var(--md-sys-color-primary-container, transparent)}
+.pg-btn[disabled]{opacity:.35; cursor:default}
+.pg-gap{padding:0 4px}
+@media (max-width:620px){ .pg-info{flex-basis:100%} .pg-size{margin-left:0} .pg-nums{margin-left:auto} .pg-size span{display:none} }
+
+
+
+
+/* Tabs in editing / cancelling / holding states */
+.topbar .ob-tabs .tab-editing{color:var(--md-sys-color-warning); font-weight:700}
+.topbar .ob-tabs .tab-editing::before{content:"�E"; margin-right:5px; font-size:12px}
+.topbar .ob-tabs .tab-cancelling{color:var(--md-sys-color-error); font-weight:700}
+.topbar .ob-tabs .tab-cancelling::before{content:"�6"; margin-right:5px; font-size:12px}
+.topbar .ob-tabs .tab-holding{color:var(--md-sys-color-primary); font-weight:700}
+.topbar .ob-tabs .tab-holding::before{content:"CB"; margin-right:5px; font-size:10px}
+
+#view-new, #view-all, #view-ref{display:flex; flex-direction:column; min-height:0}
+#view-new[hidden], #view-all[hidden], #view-ref[hidden]{display:none !important}
+
+#ref-new, #ref-list{display:flex; flex-direction:column; min-height:0}
+#ref-new[hidden], #ref-list[hidden]{display:none !important}
+
+/* Payments & refund movement rows in All bills */
+.al-tbl tbody tr.al-pay td,
+.al-tbl tbody tr.al-pay:hover td{
+  background:color-mix(in oklab, var(--md-sys-color-success-container) 58%, var(--md-sys-color-surface));
+  border-top:0; border-bottom:0;
+  padding-block:7px; font-size:12.5px; line-height:18px; vertical-align:middle;
+}
+.al-tbl tbody tr.al-pay.is-out td,
+.al-tbl tbody tr.al-pay.is-out:hover td{
+  background:color-mix(in oklab, var(--md-sys-color-error-container) 58%, var(--md-sys-color-surface));
+}
+.al-tbl tbody tr.al-pay .ap-no{
+  position:relative; padding-left:46px;
+  font-weight:600; font-variant-numeric:tabular-nums; color:var(--md-sys-color-on-success-container);
+}
+.al-tbl tbody tr.al-pay .ap-no::before,
+.al-tbl tbody tr.al-pay .ap-no::after{content:""; position:absolute; background:currentColor; opacity:.42}
+.al-tbl tbody tr.al-pay .ap-no::before{left:24px; top:0; bottom:0; width:1.5px}
+.al-tbl tbody tr.al-pay.is-last .ap-no::before{bottom:auto; height:50%}
+.al-tbl tbody tr.al-pay .ap-no::after{left:24px; top:50%; width:11px; height:1.5px}
+.al-tbl tbody tr.al-pay.is-out .ap-no{color:var(--md-sys-color-on-error-container)}
+.al-tbl tbody tr.al-pay .ap-link{
+  color:inherit; font-size:inherit; line-height:inherit; font-weight:600;
+  font-variant-numeric:tabular-nums; text-decoration:underline;
+  text-decoration-color:color-mix(in oklab, currentColor 35%, transparent); text-underline-offset:2px;
+  padding:7px 5px; margin:-7px -5px;
+  background:none; border:none; cursor:pointer;
+}
+.al-tbl tbody tr.al-pay .ap-link:hover{text-decoration-color:currentColor}
+.al-tbl tbody tr.al-pay .ap-link:focus-visible{outline:2px solid var(--md-sys-color-primary); outline-offset:2px; border-radius:2px}
+.al-tbl tbody tr.al-pay .ap-kind{
+  display:inline-block; margin-right:7px; font-weight:500; font-size:10.5px; letter-spacing:.5px;
+  text-transform:uppercase; opacity:.75;
+}
+.al-tbl tbody tr.al-pay .ap-amt{font-weight:600; font-variant-numeric:tabular-nums}
+.al-tbl tbody tr.al-pay .soft-l{display:inline; margin-left:8px; color:inherit; opacity:.72}
+
+.al-tbl tbody tr.has-pays.is-open td{border-bottom:0}
+.al-tbl tbody tr.al-pay.is-last td{border-bottom:1px solid var(--md-sys-color-outline-variant)}
+
+.al-exp{
+  display:inline-flex; align-items:center; gap:4px; margin-top:4px; padding:2px 7px 2px 4px; cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-full);
+  background:none; color:var(--md-sys-color-on-surface-variant);
+  font:inherit; font-size:11.5px; line-height:16px; font-weight:400; letter-spacing:.2px; white-space:nowrap;
+}
+.al-exp:hover{background:var(--md-sys-color-surface-container); color:var(--md-sys-color-on-surface)}
+.al-exp svg{width:14px; height:14px; flex:none; transition:transform .15s ease}
+.al-exp[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.al-pay[hidden]{display:none}
+
+/* Cancelled Bill Row Highlight */
+.al-tbl tbody tr.is-cancelled td,
+.al-tbl tbody tr[data-cancelled="true"] td {
+  background: color-mix(in oklab, var(--md-sys-color-error-container) 36%, var(--md-sys-color-surface));
+  color: var(--md-sys-color-on-surface);
+}
+.al-tbl tbody tr.is-cancelled:hover td,
+.al-tbl tbody tr[data-cancelled="true"]:hover td {
+  background: color-mix(in oklab, var(--md-sys-color-error-container) 48%, var(--md-sys-color-surface));
+}
+.al-tbl tbody tr.is-cancelled .al-no,
+.al-tbl tbody tr[data-cancelled="true"] .al-no {
+  color: var(--md-sys-color-error) !important;
+  font-weight: 600;
+}
+.pill-err {
+  display: inline-flex;
+  align-items: center;
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  border-radius: var(--md-sys-shape-corner-full);
+}
+.pill-err::before {
+  content: "\2715";
+  margin-right: 4px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+.pill-refund {
+  display: inline-flex;
+  align-items: center;
+  background: var(--md-sys-color-warning-container);
+  color: var(--md-sys-color-on-warning-container);
+  border-radius: var(--md-sys-shape-corner-full);
+}
+.pill-refund::before {
+  content: "\21A9";
+  margin-right: 4px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+.al-stps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 3px;
+}
+.al-stps .al-stp {
+  margin-top: 0;
+}
+.al-stp {
+  display: inline-flex;
+  width: fit-content;
+  height: 20px;
+  margin-top: 3px;
+  padding-inline: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+/* Confirmation Modal & Dialog */
+.dlg-scrim{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:var(--md-sys-spacing-4);
+  background:rgba(4,20,18,.45)}
+.dlg-scrim[hidden]{display:none !important}
+.dlg{width:min(620px,100%); max-height:min(80vh,640px); display:flex; flex-direction:column; overflow:hidden;
+  background:var(--md-sys-color-surface-container-lowest); border-radius:var(--md-sys-shape-corner-large); box-shadow:var(--md-sys-elevation-level5)}
+.dlg-head{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--md-sys-spacing-3);
+  padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5); border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.dlg-title{margin:0; font-size:17px; line-height:24px; font-weight:600}
+.dlg-x{margin:-4px -8px -4px 0}
+.dlg-sub{margin:2px 0 0; font-size:13px; line-height:19px; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+.dlg-foot{display:flex; align-items:center; justify-content:space-between; gap:var(--md-sys-spacing-3); flex-wrap:wrap;
+  padding:var(--md-sys-spacing-3) var(--md-sys-spacing-5); border-top:1px solid var(--md-sys-color-outline-variant);
+  background:var(--md-sys-color-surface-container-low); font-size:12px; line-height:17px; color:var(--md-sys-color-on-surface-variant)}
+.ra-dlg{width:min(540px,100%)}
+.ra-body{padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5); font-size:13.5px; line-height:20px}
+.ra-body p{margin:0}
+.ra-body p + p{margin-top:var(--md-sys-spacing-2); color:var(--md-sys-color-on-surface-variant); font-size:12.5px; line-height:18px}
+.ra-foot{justify-content:flex-end; background:var(--md-sys-color-surface-container-lowest); flex-direction:column-reverse; align-items:stretch}
+.ra-foot .btn{width:100%}
+
+
+/* ══════════ editing a bill, cancelling it, refunding it ══════════ */
+/* A paid bill is a record, so changing one is marked as plainly as the clinic's
+   own paperwork would mark it: a strip across the form naming the bill, and a
+   bar that saves rather than collects. */
+.edit-note{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--md-sys-spacing-3);
+  align-items:center; margin-bottom:var(--md-sys-spacing-3);
+  padding:var(--md-sys-spacing-3) var(--md-sys-spacing-4);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-warning-container); color:var(--md-sys-color-on-warning-container);
+  flex-wrap:wrap;
+}
+.edit-note-main{display:flex; align-items:center; gap:var(--md-sys-spacing-3); flex:1; min-width:240px}
+.edit-note .en-what{flex:1; min-width:0}
+.edit-note svg{width:20px; height:20px}
+.edit-note .en-title{font-size:14px; line-height:20px; font-weight:500; letter-spacing:.1px}
+.edit-note .en-title b{font-variant-numeric:tabular-nums}
+.edit-note .en-sub{margin:1px 0 0; font-size:12px; line-height:17px; letter-spacing:.4px; font-variant-numeric:tabular-nums}
+.edit-note .btn-text{color:inherit; text-decoration:underline; text-underline-offset:2px}
+@container (max-width:470px){
+  .edit-note{grid-template-columns:20px minmax(0,1fr)}
+  .edit-note .btn-text{grid-column:2; justify-self:start; padding-inline:0}
+}
+.edit-note .en-acts{display:flex; align-items:center; gap:var(--md-sys-spacing-1); flex-wrap:wrap}
+/* a cancellation is not an edit, and the strip says which one is open */
+.edit-note.is-cancel{background:var(--md-sys-color-error-container); color:var(--md-sys-color-on-error-container)}
+@container (max-width:470px){ .edit-note .en-acts{grid-column:2; justify-self:start} }
+.banner-warn{background:var(--md-sys-color-warning-container); color:var(--md-sys-color-on-warning-container)}
+
+/* ── edit, or cancel: the desk says which before either one opens ──
+   Editing a bill and cancelling it are different acts with different
+   consequences, so they are not stacked on one screen where the destructive one
+   sits a scroll below the other. The desk picks one, and only that one opens. */
+.ob-pick{display:flex; flex-direction:column; gap:var(--md-sys-spacing-4)}
+.ob-pick[hidden]{display:none}
+/* the same fact grid the bill document uses, so a bill reads the same way
+   wherever the desk meets it */
+.ep-facts{
+  display:flex; flex-wrap:wrap; align-items:baseline;
+  gap:var(--md-sys-spacing-3) var(--md-sys-spacing-6);
+  margin:0; padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);
+  border:1px solid var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-lowest);
+}
+.ep-facts > div{flex:0 0 auto; min-width:0}
+.ep-facts dd{white-space:nowrap}
+.ep-facts .f-due dd{color:var(--md-sys-color-warning); font-weight:600}
+.ep-facts .f-back dd{color:var(--md-sys-color-error); font-weight:600}
+.ep-facts .f-no dd{font-size:16px; line-height:24px; font-weight:700}
+.ep-cards{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--md-sys-spacing-4)}
+@media (max-width:860px){ .ep-cards{grid-template-columns:minmax(0,1fr)} }
+.ep-card{
+  display:grid; grid-template-columns:28px minmax(0,1fr); grid-template-rows:auto auto;
+  gap:4px var(--md-sys-spacing-3); text-align:left; cursor:pointer;
+  padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);
+  border:1px solid var(--md-sys-color-outline-variant); border-top:3px solid var(--md-sys-color-primary);
+  border-radius:var(--md-sys-shape-corner-medium); background:var(--md-sys-color-surface-container-lowest);
+  color:var(--md-sys-color-on-surface); box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.ep-card:hover{background:color-mix(in oklab, var(--md-sys-color-primary) 6%, #ffffff); border-color:var(--md-sys-color-primary)}
+.ep-ic{grid-row:1 / 3; display:inline-flex; align-items:flex-start; justify-content:center; color:var(--md-sys-color-primary)}
+.ep-ic svg{width:26px; height:26px}
+.ep-t{font-size:15px; line-height:22px; font-weight:600; letter-spacing:.1px}
+.ep-d{font-size:12.5px; line-height:18px; letter-spacing:.3px; color:var(--md-sys-color-on-surface-variant)}
+.ep-card.ep-danger{border-top-color:var(--md-sys-color-error)}
+.ep-card.ep-danger .ep-ic{color:var(--md-sys-color-error)}
+.ep-card.ep-danger:hover{background:color-mix(in oklab, var(--md-sys-color-error) 6%, #ffffff); border-color:var(--md-sys-color-error)}
+.ep-foot{display:flex; align-items:center; gap:var(--md-sys-spacing-3); flex-wrap:wrap}
+/* money owed back is a question the desk answers, not a panel it scrolls past */
+.ra-dlg{width:min(540px,100%)}
+.ra-body{padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5); font-size:13.5px; line-height:20px}
+.ra-body p{margin:0}
+.ra-body p + p{margin-top:var(--md-sys-spacing-2); color:var(--md-sys-color-on-surface-variant); font-size:12.5px; line-height:18px}
+.ra-foot{justify-content:flex-end; background:var(--md-sys-color-surface-container-lowest)}
+@media (max-width:620px){ .ra-foot{flex-direction:column-reverse; align-items:stretch} .ra-foot .btn{width:100%} }
+
+.sec-x .cx-all{grid-template-columns:18px auto; align-items:center}
+.sec-x .cx-all .c-label{font-size:13px; line-height:19px; font-weight:500; color:var(--md-sys-color-error)}
+.cx-tbl{width:100%; margin-top:var(--md-sys-spacing-3); font-size:13px}
+.cx-tbl th,.cx-tbl td{padding:7px var(--md-sys-spacing-3) 7px 0; white-space:normal}
+.cx-tbl th:first-child,.cx-tbl td:first-child{padding-left:var(--md-sys-spacing-3); width:42px}
+.cx-tbl td.act,.cx-tbl th.act{text-align:right; padding-right:var(--md-sys-spacing-3); width:96px}
+.cx-tbl .cx-sub{display:block; margin-top:1px; font-size:12px; line-height:16px; letter-spacing:.4px; color:var(--md-sys-color-on-surface-variant)}
+/* a line marked for cancelling reads as struck out, not merely tinted */
+.cx-tbl tr[data-struck="true"]{background:var(--md-sys-color-error-container)}
+.cx-tbl tr[data-struck="true"] .cx-what{text-decoration:line-through}
+.cx-tbl tr[data-struck="true"] td,.cx-tbl tr[data-struck="true"] .cx-sub{color:var(--md-sys-color-on-error-container)}
+.cx-pick{display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; font-weight:500; letter-spacing:.3px}
+.cx-pick input{width:16px; height:16px; margin:0; accent-color:var(--md-sys-color-error)}
+.cx-foot{display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:var(--md-sys-spacing-3); margin-top:var(--md-sys-spacing-4)}
+@container (max-width:620px){ .cx-foot{grid-template-columns:minmax(0,1fr)} }
+.cx-acts{display:flex; align-items:center; gap:var(--md-sys-spacing-2); flex-wrap:wrap; margin-top:var(--md-sys-spacing-4)}
+.cx-danger{background:var(--md-sys-color-error); color:var(--md-sys-color-on-error)}
+.cx-danger:hover{background:#7a0000}
+.cx-note{font-size:12px; line-height:17px; letter-spacing:.4px; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+
+/* Cancel & Refund dynamic calculations */
+.cx-calc{margin-top:var(--md-sys-spacing-3); padding:var(--md-sys-spacing-3); background:var(--md-sys-color-surface-container-low); border:1px solid var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-medium); display:flex; flex-direction:column; gap:var(--md-sys-spacing-3)}
+.cx-calc-card{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--md-sys-spacing-3)}
+@media (max-width:620px){ .cx-calc-card{grid-template-columns:1fr; gap:var(--md-sys-spacing-2)} }
+.cx-calc-item{display:flex; flex-direction:column; gap:2px}
+.cx-calc-label{font-size:11.5px; line-height:16px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; color:var(--md-sys-color-on-surface-variant)}
+.cx-calc-val{font-size:15px; line-height:20px; font-weight:600; color:var(--md-sys-color-on-surface); font-variant-numeric:tabular-nums}
+.cx-calc-total .cx-calc-val{font-size:17px; color:var(--md-sys-color-error)}
+.cx-mode-block{display:flex; flex-direction:column; gap:6px; padding-top:var(--md-sys-spacing-2); border-top:1px dashed var(--md-sys-color-outline-variant)}
+.cx-label{font-size:12px; line-height:16px; font-weight:500; color:var(--md-sys-color-on-surface-variant)}
+.cx-modes{display:flex; flex-wrap:wrap; gap:var(--md-sys-pill-gap)}
+.cx-mode-pill{display:inline-flex; align-items:center; cursor:pointer; margin:0}
+.cx-mode-pill input{position:absolute; opacity:0; pointer-events:none}
+.cx-mode-pill span{display:inline-flex; align-items:center; justify-content:center; min-height:var(--md-sys-pill-height); padding-inline:14px; border:1px solid var(--md-sys-color-outline); border-radius:var(--md-sys-shape-corner-full); background:var(--md-sys-color-surface); color:var(--md-sys-color-on-surface-variant); font-size:12px; font-weight:500; letter-spacing:.3px; transition:all .15s ease; user-select:none}
+.cx-mode-pill input:checked + span{background:var(--md-sys-color-primary-container); border-color:transparent; color:var(--md-sys-color-on-primary-container); font-weight:600}
+.al-tbl tr[data-cancelled="true"] .al-no{text-decoration:line-through}
+/* the pill goes under the number: inline, it set the width of the whole
+   column for the sake of the two rows in ten that carry one */
+.al-tbl td.al-bno{white-space:normal}
+.al-tbl .al-stp{display:flex; width:fit-content; height:20px; margin-top:3px; padding-inline:7px; font-size:10.5px; letter-spacing:.3px}
+.al-sum .al-gave b{color:var(--md-sys-color-error)}
+.al-tbl .al-stp::before{margin-right:3px; font-size:9px}
+
+/* ══════════ the refunds tab ══════════ */
+.rf-top{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--md-sys-spacing-3); flex-wrap:wrap; margin-bottom:var(--md-sys-spacing-3)}
+.rf-top .al-sum{flex:1 1 320px; margin:0}
+.rf-tbl .rf-no{font-weight:600; font-variant-numeric:tabular-nums}
+.rf-tbl .rf-amt{font-weight:600; color:var(--md-sys-color-error); font-variant-numeric:tabular-nums}
+.rf-tbl .rf-against{font-variant-numeric:tabular-nums}
+.rf-tbl .btn svg{width:16px; height:16px; flex:none}
+.rn-cols{display:flex; flex-direction:column; gap:var(--md-sys-spacing-3); margin-top:var(--md-sys-spacing-3)}
+.rn-panel{position:static}
+/* step 2 is wide now, so its fields sit across the row instead of stacking
+   into a ribbon the desk has to scroll past */
+.rn-panel .sec-body{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--md-sys-spacing-3) var(--md-sys-spacing-4); align-items:start}
+.rn-panel .sec-body > *{margin-top:0}
+.rn-panel .f-mode{grid-column:span 2}
+.rn-panel .f-remark{grid-column:span 2}
+.rn-bar .ab-btns .btn{min-width:180px}
+/* the bar is the screen's own floor, so the work above it needs no deep
+   bottom padding of its own */
+#ref-new .ob-work{padding-bottom:var(--md-sys-spacing-3)}
+@media (max-width:1240px){ .rn-panel .sec-body{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:1000px){ .rn-panel .sec-body{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:620px){
+  .rn-panel .sec-body{grid-template-columns:minmax(0,1fr)}
+  .rn-panel .f-mode,.rn-panel .f-remark{grid-column:auto}
+}
+/* the bill table: tighter gutters, and the time under the date as elsewhere */
+.rn-filter button{padding-inline:var(--md-sys-spacing-3); font-size:12.5px; min-height:30px}
+/* Both steps have to be in view at once, so every band above them is trimmed:
+   the search collapses once a patient is chosen, the patient reads as one
+   line, and the rows give up the space a second line of date was taking. */
+.rn-who{align-items:center; gap:var(--md-sys-spacing-3); padding-block:6px}
+.rn-who .vv-who{display:flex; align-items:baseline; gap:var(--md-sys-spacing-3); flex-wrap:wrap; min-width:0}
+.rn-who h2{font-size:16px; line-height:24px}
+.rn-who .vv-meta{margin:0}
+.rn-cols .sec-head{padding-block:var(--md-sys-spacing-2)}
+.rn-cols .sec-body{padding-block:var(--md-sys-spacing-3) var(--md-sys-spacing-2)}
+.rn-tbl{font-size:13px}
+.rn-tbl th,.rn-tbl td{padding-inline:10px; padding-block:7px}
+.rn-tbl .soft-l{margin-left:6px; font-size:12px; color:var(--md-sys-color-on-surface-variant)}
+.rn-tbl tr[data-on="true"] .soft-l{color:inherit}
+/* a window too narrow for nine columns gets cards, not a sideways scroll */
+@media (max-width:980px){
+  .rn-tbl .soft-l{display:block; margin-left:0}
+  .rn-tbl thead{display:none}
+  .rn-tbl, .rn-tbl tbody{display:block}
+  .rn-tbl tbody tr{display:grid; grid-template-columns:24px repeat(3,minmax(0,1fr)); gap:10px 14px;
+    padding:12px var(--md-sys-spacing-4); border-bottom:1px solid var(--md-sys-color-outline-variant)}
+  .rn-tbl tbody td, .rn-tbl tbody td.num{display:block; padding:0; border:0; white-space:normal; text-align:left}
+  .rn-tbl td[data-k]::before{content:attr(data-k); display:block; font-size:10.5px; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--md-sys-color-on-surface-variant)}
+  /* the tick keeps column one to itself for the whole card, so no cell can
+     wrap under it and land on top of another one */
+  .rn-tbl tbody td.pick{grid-column:1; grid-row:1 / span 3; width:auto; align-self:center}
+}
+@media (max-width:620px){
+  .rn-tbl tbody tr{grid-template-columns:24px repeat(2,minmax(0,1fr))}
+  .rn-tbl tbody td.pick{grid-row:1 / span 4}
+}
+.rn-tbl th.pick,.rn-tbl td.pick{width:40px; padding-right:0}
+.rn-tbl td.pick input{width:16px; height:16px; margin:0; accent-color:var(--md-sys-color-primary); cursor:pointer}
+.rn-tbl tr[data-on="true"]{background:var(--md-sys-color-primary-container)}
+.rn-tbl tr[data-on="true"] td{color:var(--md-sys-color-on-primary-container)}
+.rn-tbl tr[aria-disabled="true"]{opacity:.55}
+.rn-tbl .rn-left{font-weight:600; font-variant-numeric:tabular-nums}
+.rn-max{
+  margin:var(--md-sys-spacing-2) 0 0; font-size:12px; line-height:17px; letter-spacing:.4px;
+  color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums;
+}
+.rn-max b{color:var(--md-sys-color-on-surface); font-weight:600}
+.rn-modes{display:flex; flex-wrap:wrap; background:none; padding:0; gap:var(--md-sys-pill-gap)}
+.rn-modes button{
+  min-height:var(--md-sys-pill-height); padding-inline:12px; border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full); background:none; color:var(--md-sys-color-on-surface-variant);
+  font-size:12px; font-weight:500; letter-spacing:.3px;
+}
+.rn-modes button[aria-pressed="true"]{
+  background:var(--md-sys-color-primary-container); border-color:transparent;
+  color:var(--md-sys-color-on-primary-container); box-shadow:none;
+}
+.rn-panel .field .lbl{display:block; font-size:13px; line-height:18px; font-weight:500; margin-bottom:4px}
+#rn-bills{font-variant-numeric:tabular-nums}
+#ref-new .finder .ob-back{margin-bottom:var(--md-sys-spacing-2)}
+.rf-doc{margin-top:var(--md-sys-spacing-4)}
+
+/* ══════════ refunds: the approval step ══════════
+   A refund is initiated at the desk, approved or rejected by an admin, and
+   only then handed back. The list reads that trail left to right. */
+.rf-role{display:flex; align-items:center; gap:var(--md-sys-spacing-2); flex-wrap:wrap; font-size:12.5px; color:var(--md-sys-color-on-surface-variant)}
+.rf-role .rr-tag{display:inline-flex; align-items:center; height:20px; padding-inline:8px; border-radius:var(--md-sys-shape-corner-full);
+  border:1px dashed var(--md-sys-color-outline); font-size:10.5px; letter-spacing:.5px; text-transform:uppercase}
+.rf-role .seg button{min-height:30px; padding-inline:var(--md-sys-spacing-3); font-size:12.5px}
+.rf-top .rf-right{display:flex; flex-direction:column; align-items:flex-end; gap:var(--md-sys-spacing-2)}
+.rf-tools{display:flex; align-items:center; justify-content:space-between; gap:var(--md-sys-spacing-3); flex-wrap:wrap; margin-bottom:var(--md-sys-spacing-3)}
+.rf-st button{min-height:30px; padding-inline:var(--md-sys-spacing-3); font-size:12.5px; font-variant-numeric:tabular-nums}
+.rf-st .cnt{display:inline-flex; min-width:20px; height:18px; margin-left:5px; padding-inline:5px; align-items:center; justify-content:center;
+  border-radius:var(--md-sys-shape-corner-full); background:var(--md-sys-color-surface-container-highest); font-size:11px}
+.rf-legend{display:flex; gap:var(--md-sys-spacing-3); flex-wrap:wrap; font-size:12px; color:var(--md-sys-color-on-surface-variant); margin-top:var(--md-sys-spacing-3)}
+.rf-legend span{display:inline-flex; align-items:center; gap:6px}
+.rf-legend i{width:10px; height:10px; border-radius:50%; display:inline-block}
+.rf-legend .lg-p{background:var(--md-sys-color-info-container); box-shadow:inset 0 0 0 1.5px var(--md-sys-color-on-info-container)}
+.rf-legend .lg-c{background:var(--md-sys-color-success-container); box-shadow:inset 0 0 0 1.5px var(--md-sys-color-success)}
+.rf-legend .lg-r{background:var(--md-sys-color-error-container); box-shadow:inset 0 0 0 1.5px var(--md-sys-color-error)}
+.rf-tbl tr[data-st="pending"] td:first-child,.rf-tbl tr[data-st="approved"] td:first-child{box-shadow:inset 3px 0 0 var(--md-sys-color-on-info-container)}
+.rf-tbl tr[data-st="issued"] td:first-child{box-shadow:inset 3px 0 0 var(--md-sys-color-success)}
+.rf-tbl tr[data-st="rejected"] td:first-child{box-shadow:inset 3px 0 0 var(--md-sys-color-error)}
+.rf-tbl tr[data-st="rejected"] .rf-amt{color:var(--md-sys-color-on-surface-variant); text-decoration:line-through}
+.rf-tbl .rf-no .link{font-weight:600; text-decoration:none; color:var(--md-sys-color-primary)}
+.rf-tbl .rf-no .link:hover{text-decoration:underline}
+.rf-tbl .rf-stp .pill{height:22px; padding-inline:8px; font-size:11px}
+.rf-tbl .rf-tm{color:var(--md-sys-color-on-surface-variant); margin-left:4px}
+.rf-tbl .rf-rej .rf-tm{color:inherit}
+.rf-tbl .rf-wait{color:var(--md-sys-color-on-surface-variant)}
+.rf-tbl .rf-rej{color:var(--md-sys-color-error); font-weight:500}
+.rf-tbl td.act{white-space:nowrap}
+.rf-acts{display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap}
+#rf-rows .rf-acts{flex-wrap:nowrap}
+#rf-rows .rf-acts .btn{min-height:28px; padding-inline:10px; font-size:12px}
+#rf-rows .rf-acts .rf-note{max-width:none; white-space:nowrap}
+@media (min-width:1101px){
+  .rf-tbl{font-size:12.5px; line-height:17px}
+  .rf-tbl th,.rf-tbl td{padding:6px 7px; white-space:nowrap; vertical-align:middle}
+  .rf-tbl td.rf-stamp .soft-l{max-width:130px; overflow:hidden; text-overflow:ellipsis; display:block}
+  .rf-tbl th{padding-block:8px}
+  .rf-tbl .soft-l{font-size:11.5px; line-height:16px}
+  .rf-tbl .rf-pt .strong{display:block; max-width:120px; overflow:hidden; text-overflow:ellipsis}
+  .rf-tbl .rf-against .soft-l{max-width:96px; overflow:hidden; text-overflow:ellipsis; display:block}
+}
+.rf-why-btn{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:-3px 0 -3px 4px; padding:0; vertical-align:middle;
+  border:0; border-radius:50%; background:none; color:var(--md-sys-color-error); cursor:pointer}
+.rf-why-btn:hover,.rf-why-btn[aria-expanded="true"]{background:var(--md-sys-color-error-container)}
+.rf-why-btn svg{width:16px; height:16px}
+.rf-pop{position:fixed; z-index:70; width:max-content; max-width:300px; padding:10px 12px; border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-lowest); color:var(--md-sys-color-on-surface); box-shadow:var(--md-sys-elevation-level2, 0 4px 14px rgba(0,0,0,.16));
+  border:1px solid var(--md-sys-color-outline-variant); font-size:12.5px; line-height:18px}
+.rf-pop[hidden]{display:none}
+.rf-pop b{display:block; font-size:11px; letter-spacing:.4px; text-transform:uppercase; color:var(--md-sys-color-error); margin-bottom:2px}
+.rf-pop p{margin:0}
+.rf-pop p:empty{display:none}
+.rf-pop-l{list-style:none; margin:4px 0 0; padding:0; min-width:200px; font-variant-numeric:tabular-nums}
+.rf-pop-l:empty{display:none}
+.rf-pop-l li{display:flex; justify-content:space-between; gap:16px; padding:3px 0; border-top:1px solid var(--md-sys-color-outline-variant)}
+.rf-pop-l li:first-child{border-top:0}
+.rf-pop-l li span{color:var(--md-sys-color-on-surface-variant)}
+.rf-pop-l li b{all:unset; font-weight:600; color:var(--md-sys-color-error)}
+.rf-pop-l li.tot{font-weight:600; border-top:1px solid var(--md-sys-color-outline)}
+.rf-pop.is-bills > b{color:var(--md-sys-color-on-surface-variant)}
+.rf-more{display:inline-flex; align-items:center; height:20px; margin-left:6px; padding:0 7px; vertical-align:1px; border:0; cursor:pointer;
+  border-radius:var(--md-sys-shape-corner-full); background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container);
+  font:600 11px/20px inherit; font-variant-numeric:tabular-nums}
+.rf-more:hover,.rf-more[aria-expanded="true"]{background:var(--md-sys-color-primary); color:var(--md-sys-color-on-primary)}
+.rf-acts .rf-note{font-size:12px; color:var(--md-sys-color-on-surface-variant); text-align:right; white-space:normal; max-width:150px}
+.btn-ok{background:var(--md-sys-color-success); color:#fff; border:0}
+.btn-ok:hover{background:#00451a}
+.btn-rej{background:none; border:1px solid var(--md-sys-color-error); color:var(--md-sys-color-error)}
+.btn-rej:hover{background:var(--md-sys-color-error-container)}
+.vv-ok.is-wait{background:var(--md-sys-color-info-container); color:var(--md-sys-color-on-info-container)}
+.vv-ok.is-rej{background:var(--md-sys-color-error-container); color:var(--md-sys-color-on-error-container)}
+#rn-done .vv-bar{gap:var(--md-sys-spacing-2); flex-wrap:wrap; align-items:center}
+#rn-done .vv-bar .rf-role{margin-right:auto}
+#rn-done .vv-ok{margin-top:var(--md-sys-spacing-3)}
+.rf-trail{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--md-sys-spacing-2); margin:var(--md-sys-spacing-3) 0}
+.rf-trail > div{padding:10px 12px; border-radius:var(--md-sys-shape-corner-medium); background:var(--md-sys-color-surface-container-low); border:1px solid var(--md-sys-color-outline-variant)}
+.rf-trail dt{font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--md-sys-color-on-surface-variant)}
+.rf-trail dd{margin:2px 0 0; font-size:13px; line-height:19px; font-weight:600}
+.rf-trail dd span{display:block; font-weight:400; font-size:12px; color:var(--md-sys-color-on-surface-variant)}
+.rf-trail .t-done{background:var(--md-sys-color-success-container); border-color:transparent}
+.rf-trail .t-wait{background:var(--md-sys-color-info-container); border-color:transparent}
+.rf-trail .t-rej{background:var(--md-sys-color-error-container); border-color:transparent}
+.rj-body .field{margin-top:var(--md-sys-spacing-3)}
+.rj-body textarea{width:100%; min-height:72px; resize:vertical; font:inherit}
+@media (max-width:620px){
+  .rf-trail{grid-template-columns:minmax(0,1fr)}
+  .rf-top .rf-right{align-items:stretch; width:100%}
+  .rf-acts{justify-content:flex-start}
+}
+
+/* ══════════ the billing panel, tightened ══════════
+   A desk bills ten or twelve lines at a time, and every line pushed below the
+   fold is one the biller has to scroll back for. Nothing is dropped: the code,
+   group and doctor that sat on a second line now follow the name on the first,
+   and what is left is padding that was not earning its height. The controls
+   keep the size the design system gave them, so a dense bill is not also a
+   harder one to hit. The bill document is built from the same .bill table, so
+   it tightens with it. */
+.bill .b-what{display:inline}
+.bill .b-sub{display:inline; margin:0 0 0 8px}
+/* below this the one line no longer fits and starts wrapping into three, so
+   the code and group go back under the name where they read cleanly */
+@media (max-width:760px){
+  .bill .b-what{display:block}
+  .bill .b-sub{display:block; margin:1px 0 0}
+}
+.bill th,.bill td{padding-block:3px}
+.bill thead th{line-height:15px}
+.bill tbody td{vertical-align:middle}
+.bill-empty{padding-block:var(--md-sys-spacing-3)}
+.totals{margin-top:6px; padding-top:6px; gap:4px}
+.tot-auth, #tot-auth-row{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--md-sys-spacing-3); align-items:center; font-size:13px; line-height:19px}
+.tot-auth[hidden], #tot-auth-row[hidden]{display:none !important}
+.tot-auth .auth-ctl, #tot-auth-row .auth-ctl{display:inline-flex; align-items:center; justify-content:flex-end}
+.tot-auth select.select-auth, #tot-auth-row select.select-auth{min-width:180px; max-width:240px; height:28px; padding:2px 24px 2px 8px; border-radius:var(--md-sys-shape-corner-extra-small, 4px); border:1px solid var(--md-sys-color-outline-variant, #cac4d0); background-color:var(--md-sys-color-surface, #fff); color:var(--md-sys-color-on-surface, #1d1b20); font-size:13px; font-weight:500; text-align:left}
+.tot-auth select.select-auth:focus, #tot-auth-row select.select-auth:focus{outline:none; border-color:var(--md-sys-color-primary, #00639b)}
+.tot-auth select.select-auth.is-invalid, #tot-auth-row select.select-auth.is-invalid{border-color:var(--md-sys-color-error, #b3261e) !important; background-color:var(--md-sys-color-error-container, #f9dedc) !important; color:var(--md-sys-color-on-error-container, #410e0b) !important}
+.tot-big{line-height:22px}
+.tot-big .t-v{font-size:19px; line-height:26px}
+.pay{margin-top:var(--md-sys-spacing-3); padding-top:var(--md-sys-spacing-2)}
+.pay-h{margin-bottom:4px}
+.pay-row + .pay-row{margin-top:6px}
+.pay-add{margin-top:4px}
+.pay-tot{margin-top:6px}
+.pay-foot{margin-top:var(--md-sys-spacing-2)}
+#sec-bill .sec-head{padding-block:var(--md-sys-spacing-2)}
+
+/* ══════════ what sits above the bill ══════════
+   On the registration screen a settled step shrinks to a single line, because
+   once it is right the desk only needs to see that it is right. The same two
+   blocks here were costing 228px before the first item: the patient on two
+   lines under a heading-sized name, and the doctor behind a full section head.
+   Both still hold every word they held; they just stop taking the room of
+   something being filled in. */
+#pt-block{padding:7px var(--md-sys-spacing-4); align-items:center; border-top-width:2px}
+#pt-block .vv-who{display:flex; align-items:baseline; flex-wrap:wrap; gap:0 2px; flex:1 1 auto; min-width:0}
+#pt-block h2{font-size:14.5px; line-height:21px}
+#pt-block .vv-meta{margin:0 !important; clip-path:none; line-height:21px}
+#pt-block .btn-text{min-height:28px; font-size:13px}
+#sec-doc .sec-head, #sec-visit .sec-head{padding-block:5px; min-height:0}
+#sec-doc .sec-title, #sec-visit .sec-title{font-size:12.5px; line-height:18px; letter-spacing:.4px; color:var(--md-sys-color-on-surface-variant)}
+#sec-doc .sec-body, #sec-visit .sec-body{padding-block:var(--md-sys-spacing-2)}
+#sec-doc .grid4, #sec-visit .grid4{gap:var(--md-sys-spacing-2) var(--md-sys-spacing-3)}
+#sec-doc .grid4.has-3cols,
+#sec-visit .grid4.has-3cols,
+#sec-doc .grid4:has(#f-ref-by[hidden]),
+#sec-visit .grid4:has(#f-ref-by[hidden]),
+#sec-doc .grid4:has(#f-ref-by[style*="display: none"]),
+#sec-visit .grid4:has(#f-ref-by[style*="display: none"]),
+#sec-doc .grid4:has(#f-ref-by[style*="display:none"]),
+#sec-visit .grid4:has(#f-ref-by[style*="display:none"]) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 768px) {
+  #sec-doc .grid4.has-3cols,
+  #sec-visit .grid4.has-3cols,
+  #sec-doc .grid4:has(#f-ref-by[hidden]),
+  #sec-visit .grid4:has(#f-ref-by[hidden]),
+  #sec-doc .grid4:has(#f-ref-by[style*="display: none"]),
+  #sec-visit .grid4:has(#f-ref-by[style*="display: none"]),
+  #sec-doc .grid4:has(#f-ref-by[style*="display:none"]),
+  #sec-visit .grid4:has(#f-ref-by[style*="display:none"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  #sec-doc .grid4.has-3cols,
+  #sec-visit .grid4.has-3cols,
+  #sec-doc .grid4:has(#f-ref-by[hidden]),
+  #sec-visit .grid4:has(#f-ref-by[hidden]),
+  #sec-doc .grid4:has(#f-ref-by[style*="display: none"]),
+  #sec-visit .grid4:has(#f-ref-by[style*="display: none"]),
+  #sec-doc .grid4:has(#f-ref-by[style*="display:none"]),
+  #sec-visit .grid4:has(#f-ref-by[style*="display:none"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ══════════ reaching it all from the keyboard ══════════
+   The ₹ / % pair is clipped by its own rounded wrapper, so its focus ring is
+   drawn inside the button instead of around it, and lifted clear of the
+   neighbour it shares a border with. */
+.dunit button:focus-visible{outline-offset:-2px; position:relative; z-index:1}
+/* the service box carries its shortcut the way the patient box carries "/" */
+.svc-find .search kbd{right:8px}
+.svc-find .search input{padding-right:52px}
+
+.ep-card.is-disabled{opacity:0.6; cursor:not-allowed; border-color:var(--md-sys-color-outline-variant);}
+.ep-card.is-disabled:hover{background:var(--md-sys-color-surface-container-lowest); border-color:var(--md-sys-color-outline-variant);}
+
+/* ══════════ Refund Wizard & Patient Bills List ══════════ */
+.ui-next .results{
+  margin-top:var(--md-sys-spacing-2); max-height:260px; overflow-y:auto;
+  border:1px solid var(--md-sys-color-outline-variant); border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-lowest);
+  box-shadow:var(--md-sys-elevation-level2);
+}
+.ui-next .res{
+  width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--md-sys-spacing-3);
+  align-items:center; text-align:left; cursor:pointer; border:0; background:none;
+  padding:var(--md-sys-spacing-3) var(--md-sys-spacing-4);
+  border-bottom:1px solid var(--md-sys-color-outline-variant); color:var(--md-sys-color-on-surface);
+}
+.ui-next .res:last-child{border-bottom:0}
+.ui-next .res:hover,.ui-next .res:focus-visible{background:var(--md-sys-color-surface-container-low)}
+.ui-next .res[aria-selected="true"]{background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container)}
+.ui-next .res .r-name{font-size:14px; line-height:20px; font-weight:600}
+.ui-next .res .r-meta{display:block; margin-top:2px; font-size:12px; line-height:17px; letter-spacing:.3px; color:var(--md-sys-color-on-surface-variant); font-variant-numeric:tabular-nums}
+.ui-next .res[aria-selected="true"] .r-meta{color:inherit}
+.ui-next .res-none{padding:var(--md-sys-spacing-4); font-size:13px; line-height:19px; color:var(--md-sys-color-on-surface-variant); text-align:center}
+
+.ui-next .rn-who{align-items:center; gap:var(--md-sys-spacing-3); padding-block:6px}
+.ui-next .rn-who .vv-who{display:flex; align-items:baseline; gap:var(--md-sys-spacing-3); flex-wrap:wrap; min-width:0}
+.ui-next .rn-who h2{font-size:16px; line-height:24px; font-weight:600; margin:0}
+.ui-next .rn-who .vv-meta{margin:0; font-size:13px; color:var(--md-sys-color-on-surface-variant)}
+
+.ui-next .rn-cols{display:flex; flex-direction:column; gap:var(--md-sys-spacing-3); margin-top:var(--md-sys-spacing-3)}
+.ui-next .rn-panel{position:static}
+.ui-next .rn-panel .sec-body{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--md-sys-spacing-3) var(--md-sys-spacing-4); align-items:start}
+.ui-next .rn-panel .sec-body > *{margin-top:0}
+.ui-next .rn-panel .f-mode{grid-column:span 2}
+.ui-next .rn-panel .f-remark{grid-column:span 2}
+.ui-next .rn-bar .ab-btns .btn{min-width:180px}
+#ref-new .ob-work{padding-bottom:var(--md-sys-spacing-3)}
+
+.ui-next .rn-filter button{padding-inline:var(--md-sys-spacing-3); font-size:12.5px; min-height:30px}
+.ui-next .rn-cols .sec-head{padding-block:var(--md-sys-spacing-2)}
+.ui-next .rn-cols .sec-body{padding-block:var(--md-sys-spacing-3) var(--md-sys-spacing-2)}
+.ui-next .rn-tbl{font-size:13px}
+.ui-next .rn-tbl th,.ui-next .rn-tbl td{padding-inline:10px; padding-block:7px}
+.ui-next .rn-tbl .soft-l{margin-left:6px; font-size:12px; color:var(--md-sys-color-on-surface-variant)}
+.ui-next .rn-tbl tr[data-on="true"]{background:color-mix(in oklab, var(--md-sys-color-primary-container) 28%, var(--md-sys-color-surface))}
+.ui-next .rn-tbl tr.is-cx{background:color-mix(in oklab, var(--md-sys-color-error-container) 24%, var(--md-sys-color-surface))}
+.ui-next .rn-tbl tr[aria-disabled="true"]{opacity:0.75}
+
+@media (max-width:1240px){ .ui-next .rn-panel .sec-body{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:1000px){ .ui-next .rn-panel .sec-body{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:620px){
+  .ui-next .rn-panel .sec-body{grid-template-columns:minmax(0,1fr)}
+  .ui-next .rn-panel .f-mode,.ui-next .rn-panel .f-remark{grid-column:auto}
+}
+
+/* ══════════ Refund Done Voucher ══════════ */
+.ui-next .vv-bar{display:flex; justify-content:flex-end; gap:var(--md-sys-spacing-2); margin-bottom:var(--md-sys-spacing-3)}
+@media (max-width:620px){ .ui-next .vv-bar .btn{width:100%} }
+.ui-next .vv-ok{
+  display:flex; gap:var(--md-sys-spacing-3); align-items:flex-start; padding:var(--md-sys-spacing-3) var(--md-sys-spacing-4);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-success-container);
+  color:var(--md-sys-color-on-success-container);
+  margin-bottom:var(--md-sys-spacing-3);
+}
+.ui-next .vv-ok[hidden]{display:none}
+.ui-next .vv-ok svg{width:22px; height:22px; flex:none; margin-top:2px}
+.ui-next .vv-ok b{display:block; font-size:15px; line-height:22px; font-weight:600}
+.ui-next .vv-ok span{display:block; font-size:13px; line-height:19px}
+
+.ui-next .rf-doc{margin-top:var(--md-sys-spacing-3)}
+.ui-next .rf-doc .vv-who{margin-bottom:var(--md-sys-spacing-3)}
+.ui-next .rf-doc .vv-who h2{font-size:16px; font-weight:600; margin:0}
+.ui-next .rf-doc .vv-who .vv-meta{margin-top:2px; font-size:13px; color:var(--md-sys-color-on-surface-variant)}
+.ui-next .cx-tbl{width:100%; margin-top:var(--md-sys-spacing-2); font-size:13px; border-collapse:collapse}
+.ui-next .cx-tbl th,.ui-next .cx-tbl td{padding:8px 12px; text-align:left}
+.ui-next .cx-tbl th.num,.ui-next .cx-tbl td.num{text-align:right}
+
+.ui-next .totals{
+  margin-top:var(--md-sys-spacing-3); padding-top:var(--md-sys-spacing-3);
+  border-top:1px solid var(--md-sys-color-outline-variant);
+  display:grid; gap:var(--md-sys-spacing-2);
+}
+.ui-next .tot{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--md-sys-spacing-3); align-items:center; font-size:13px; line-height:19px}
+.ui-next .tot .t-v{font-variant-numeric:tabular-nums; font-weight:600}
+.ui-next .tot-big{font-size:15px; line-height:22px; font-weight:600}
+.ui-next .tot-big .t-v{font-size:18px; line-height:24px}
+
+@media print {
+  .ui-next .vv-bar,
+  .ui-next .topbar,
+  .ui-next .nav,
+  .ui-next .ob-tabs,
+  .ui-next #rn-finder {
+    display: none !important;
+  }
+  .ui-next .rf-doc {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+}
+
+/* ══════════ Vitals Dialog (Desk & Billing) ══════════ */
+.dlg.vt { width: min(1120px, 100%); max-height: min(92vh, 860px); }
+.vt-body {
+  overflow: auto;
+  padding: var(--md-sys-spacing-4, 16px) var(--md-sys-spacing-5, 20px) var(--md-sys-spacing-5, 20px);
+  container-type: inline-size;
+  container-name: vtd;
+}
+.vt-h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--md-sys-spacing-3, 12px);
+  flex-wrap: wrap;
+  margin: 0 0 var(--md-sys-spacing-2, 8px);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant, #64748b);
+}
+.vt-bmi {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 9px;
+  letter-spacing: .3px;
+  text-transform: none;
+  border: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+  border-radius: var(--md-sys-shape-corner-full, 9999px);
+  background: var(--md-sys-color-surface-container-low, #f1f2f2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.vt-bmi b { font-size: 12.5px; font-weight: 700; color: var(--md-sys-color-on-surface, #030303); }
+.vt-bmi i { font-style: normal; font-size: 10px; opacity: .85; }
+
+.vgrid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--md-sys-spacing-2, 8px) var(--md-sys-spacing-3, 12px);
+}
+.vgrid.ft9 {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: var(--md-sys-spacing-2, 8px) var(--md-sys-spacing-2, 8px);
+}
+@container vtd (max-width: 620px) {
+  .vgrid, .vgrid.ft9 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@container vtd (max-width: 340px) {
+  .vgrid, .vgrid.ft9 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vf.vbp { grid-column: span 2; }
+}
+
+.vf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 0; cursor: text; }
+.vf.vbp { grid-column: span 2; grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr); }
+.vf.vbp .vt-tag { grid-column: 1 / -1; }
+.vt-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 600;
+  color: var(--md-sys-color-primary, #0f7872);
+}
+.vt-tag .unit { font-size: 10.5px; font-weight: 500; color: var(--md-sys-color-on-surface-variant, #64748b); }
+.vf input {
+  min-width: 0;
+  min-height: var(--md-sys-min-target, 32px);
+  padding: 5px var(--md-sys-spacing-2, 8px);
+  font-size: 13.5px;
+  border: 1px solid var(--md-sys-color-outline, #5a6665);
+  border-radius: var(--md-sys-shape-corner-extra-small, 4px);
+  background: var(--md-sys-color-surface-container-lowest, #ffffff);
+  color: var(--md-sys-color-on-surface, #030303);
+}
+.vf input:focus {
+  padding: 4px 7px;
+  outline: none;
+  border: 2px solid var(--md-sys-color-primary, #0f7872);
+}
+.vf .sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-on-surface-variant, #64748b);
+  font-weight: 500;
+}
+.vt-uswap {
+  padding: 0 1px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--md-sys-color-primary, #0f7872);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.vt-uswap:hover { color: var(--md-sys-color-on-primary-container, #000605); }
+.vt-uswap:focus-visible { outline: 2px solid var(--md-sys-color-primary, #0f7872); outline-offset: 2px; border-radius: 2px; }
+.vf input.bad {
+  border: 2px solid var(--md-sys-color-error, #8f0000);
+  padding: 4px 7px;
+  background: var(--md-sys-color-error-container, #ffc9bd);
+  color: var(--md-sys-color-on-error-container, #170000);
+}
+.vt-tag .unit.bad, .vt-uswap.bad {
+  color: var(--md-sys-color-error, #8f0000);
+  font-weight: 700;
+}
+
+/* Vitals logs table */
+.vt-logs {
+  margin-top: var(--md-sys-spacing-5, 20px);
+  padding-top: var(--md-sys-spacing-4, 16px);
+  border-top: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+}
+.vt-count { letter-spacing: .3px; text-transform: none; font-weight: 400; }
+.vt-tw {
+  border: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  overflow: auto;
+  max-height: 44vh;
+}
+.vitlog {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 19px;
+  font-variant-numeric: tabular-nums;
+}
+.vitlog th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 6px 10px;
+  white-space: nowrap;
+  background: var(--md-sys-color-surface-container, #eaebeb);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant, #64748b);
+}
+.vitlog th i { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; margin-left: 4px; opacity: .85; }
+.vitlog td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.vitlog tr:last-child td { border-bottom: 0; }
+.vitlog td[data-k="Date"] b { font-weight: 600; }
+.vitlog td[data-k="Date"] span { margin-left: 6px; font-size: 12px; color: var(--md-sys-color-on-surface-variant, #64748b); }
+.vitlog td[data-k="Doctor"] { font-weight: 500; }
+.vitlog td[data-k="BP"] b { font-weight: 600; }
+.vt-none {
+  padding: var(--md-sys-spacing-5, 20px) var(--md-sys-spacing-4, 16px);
+  text-align: center;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--md-sys-color-on-surface-variant, #64748b);
+}
+
+@container vtd (max-width: 760px) {
+  .vt-tw { max-height: 40vh; }
+  .vitlog thead { display: none; }
+  .vitlog, .vitlog tbody { display: block; }
+  .vitlog tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant, #b5c0bf);
+  }
+  .vitlog tr:last-child { border-bottom: 0; }
+  .vitlog td { display: block; padding: 0; border: 0; white-space: normal; }
+  .vitlog td::before {
+    content: attr(data-k);
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant, #64748b);
+  }
+  .vitlog td[data-k="Date"] { grid-column: 1 / -1; }
+  .vitlog td[data-k="Date"]::before { display: none; }
+}
+@container vtd (max-width: 420px) {
+  .vitlog tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.vt-foot { justify-content: flex-end; gap: var(--md-sys-spacing-2, 8px); }
+.vt-foot .vt-err { flex: 1 1 auto; min-width: 0; color: var(--md-sys-color-error, #8f0000); font-size: 12px; line-height: 17px; }
+.vt-foot .vt-err:empty { display: none; }
+
+/* Three-step New bill workflow */
+#view-new .panel.sec .sec-n{display:inline-flex}
+#view-new .ob-pt h2 .sec-n{margin-right:8px}
+.billing-step-actions{justify-content:flex-end;margin-top:var(--md-sys-spacing-4);gap:var(--md-sys-spacing-3);flex-wrap:wrap}
+.billing-visit-kind{max-width:360px;margin-bottom:var(--md-sys-spacing-4)}
+#billing-patient-hint{margin:0;color:var(--md-sys-color-on-surface-variant)}
+#br-duplicates{margin-top:var(--md-sys-spacing-4);flex-wrap:wrap}
+#billing-visit-description{display:block;margin-top:4px}

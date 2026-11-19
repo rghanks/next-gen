@@ -4,7 +4,7 @@
 
 $conf->t_ignore_pre_defined_classes = 'all';
 
-// CRITICAL FOR LARAVEL: Preserve structure for Autoloader, Routing & Enums
+// CRITICAL FOR LARAVEL & PHP 8: Preserve structure for Autoloader, Routing, Enums & Constructor Property Promotion
 $conf->obfuscate_namespace_name      = false;
 $conf->obfuscate_class_name          = false;
 $conf->obfuscate_interface_name      = false;
@@ -12,14 +12,14 @@ $conf->obfuscate_trait_name          = false;
 $conf->obfuscate_function_name       = false;
 $conf->obfuscate_method_name         = false;
 $conf->obfuscate_property_name       = false;
-$conf->obfuscate_constant_name       = false; // Keep Enums (LabState::*) & Constants intact
-$conf->obfuscate_class_constant_name = false; // Keep Class Constants intact
+$conf->obfuscate_constant_name       = false; // Keeps Enum cases (LabState::*) intact
+$conf->obfuscate_class_constant_name = false; // Keeps class constants intact
+$conf->obfuscate_variable_name       = false; // Preserves PHP 8 Promoted Properties ($this->priceResolver)
 $conf->obfuscate_if_statement        = false;
 $conf->obfuscate_loop_statement      = false;
 
-// Heavily obfuscate internal code & logic
-$conf->obfuscate_variable_name       = true;  // Scrambles all internal variables
-$conf->obfuscate_string_literal      = true;  // Encrypts all string literals
+// Heavily obfuscate and protect logic
+$conf->obfuscate_string_literal      = true;  // Encrypts all string literals, SQL, route names, keys
 $conf->shuffle_stmts                 = false;
-$conf->strip_indentation             = true;  // Strips all whitespace & indentation
+$conf->strip_indentation             = true;  // Strips all whitespace, formatting & comments into single-line code
 $conf->abort_on_error                = false;

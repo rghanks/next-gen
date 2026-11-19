@@ -47,7 +47,7 @@ jobs:
 
       - name: 5. Encrypt Controllers, Licensing Services & Middleware
         run: |
-          YAK_FLAGS="--config-file .github/yakpro-po.cnf --no-obfuscate-class-name --no-obfuscate-namespace-name --no-obfuscate-function-name --no-obfuscate-method-name --no-obfuscate-property-name"
+          YAK_FLAGS="--config-file .github/yakpro-po.cnf --no-obfuscate-class-name --no-obfuscate-namespace-name --no-obfuscate-function-name --no-obfuscate-method-name --no-obfuscate-property-name --no-obfuscate-constant-name --no-obfuscate-class-constant-name"
 
           echo "Encrypting Controllers..."
           find app/Http/Controllers -type f -name "*.php" | while read -r file; do

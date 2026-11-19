@@ -27,10 +27,12 @@ class LicenseManager
 
     /**
      * Get path to the public key.
+     * Hardcoded to storage/license/license_public.key inside this encrypted file
+     * to prevent an unauthorized user from altering config/license.php to point to a fake key.
      */
     public static function getPublicKeyPath(): string
     {
-        return config('license.public_key_path', storage_path('license/license_public.key'));
+        return storage_path('license/license_public.key');
     }
 
     /**
@@ -38,7 +40,7 @@ class LicenseManager
      */
     public static function getStateFilePath(): string
     {
-        return config('license.state_file', storage_path('license/.sys_state'));
+        return storage_path('license/.sys_state');
     }
 
     /**
@@ -402,36 +404,48 @@ class LicenseManager
      */
     protected static function hasClockBeenRolledBack(Carbon $now): bool
     {
+        // 1. Check persistent state file
         $stateFile = self::getStateFilePath();
-        if (!File::exists($stateFile)) {
-            return false;
+        if (File::exists($stateFile)) {
+            $content = trim((string) File::get($stateFile));
+            if (!empty($content)) {
+                $decoded = base64_decode($content, true);
+                if ($decoded !== false) {
+                    $lastTimestamp = (int) $decoded;
+                    if ($lastTimestamp > 0) {
+                        $lastTime = Carbon::createFromTimestamp($lastTimestamp);
+                        // Allow 30 minutes of natural clock drift / NTP adjustment
+                        if ($now->timestamp < ($lastTime->timestamp - 1800)) {
+                            Log::warning('License clock rollback detected via state file', [
+                                'now' => $now->toIso8601String(),
+                                'last_recorded' => $lastTime->toIso8601String(),
+                            ]);
+                            return true;
+                        }
+                    }
+                }
+            }
         }
 
-        $content = trim((string) File::get($stateFile));
-        if (empty($content)) {
-            return false;
-        }
+        // 2. Database History Cross-Check (prevents bypass by simply deleting .sys_state)
+        try {
+            $latestBilling = \Illuminate\Support\Facades\DB::table('patient_billing')
+                ->whereNotNull('created_at')
+                ->latest('created_at')
+                ->value('created_at');
 
-        // State file is obfuscated timestamp
-        $decoded = base64_decode($content, true);
-        if ($decoded === false) {
-            return false;
-        }
-
-        $lastTimestamp = (int) $decoded;
-        if ($lastTimestamp <= 0) {
-            return false;
-        }
-
-        $lastTime = Carbon::createFromTimestamp($lastTimestamp);
-
-        // Allow 30 minutes of natural clock drift / NTP adjustment
-        if ($now->timestamp < ($lastTime->timestamp - 1800)) {
-            Log::warning('License clock rollback detected', [
-                'now' => $now->toIso8601String(),
-                'last_recorded' => $lastTime->toIso8601String(),
-            ]);
-            return true;
+            if ($latestBilling) {
+                $lastDbTime = Carbon::parse($latestBilling);
+                if ($now->timestamp < ($lastDbTime->timestamp - 1800)) {
+                    Log::warning('License clock rollback detected via database history', [
+                        'now' => $now->toIso8601String(),
+                        'latest_db_record' => $lastDbTime->toIso8601String(),
+                    ]);
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+            // DB not ready or during fresh installation
         }
 
         return false;

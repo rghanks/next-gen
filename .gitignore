@@ -6,6 +6,8 @@
 /storage/*.key
 /storage/license/*private*.key
 /storage/license/.sys_state
+license_generator.php
+generate_license.php
 /storage/pail
 /vendor
 .env

@@ -76,6 +76,26 @@ jobs:
             mv app/Http/Middleware/VerifyLicense.php.obf app/Http/Middleware/VerifyLicense.php
           fi
 
+          echo "Encrypting Core Domain Actions..."
+          find app/Domain/Lab/Actions -type f -name "*.php" | while read -r file; do
+            echo "Encrypting $file"
+            rm -f "${file}.obf"
+            yakpro-po "$file" -o "${file}.obf" $YAK_FLAGS
+            if [ -f "${file}.obf" ]; then
+              mv "${file}.obf" "$file"
+            fi
+          done
+
+          echo "Encrypting Core Domain Services..."
+          find app/Domain/Lab/Services -type f -name "*.php" | while read -r file; do
+            echo "Encrypting $file"
+            rm -f "${file}.obf"
+            yakpro-po "$file" -o "${file}.obf" $YAK_FLAGS
+            if [ -f "${file}.obf" ]; then
+              mv "${file}.obf" "$file"
+            fi
+          done
+
       - name: 6. Commit & Force Push to production branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

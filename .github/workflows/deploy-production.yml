@@ -47,11 +47,13 @@ jobs:
 
       - name: 5. Encrypt Controllers, Licensing Services & Middleware
         run: |
+          YAK_FLAGS="--config-file .github/yakpro-po.cnf --no-obfuscate-class-name --no-obfuscate-namespace-name --no-obfuscate-function-name --no-obfuscate-method-name --no-obfuscate-property-name"
+
           echo "Encrypting Controllers..."
           find app/Http/Controllers -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
             rm -f "${file}.obf"
-            yakpro-po "$file" -o "${file}.obf" --config-file .github/yakpro-po.cnf
+            yakpro-po "$file" -o "${file}.obf" $YAK_FLAGS
             if [ -f "${file}.obf" ]; then
               mv "${file}.obf" "$file"
             fi
@@ -61,7 +63,7 @@ jobs:
           find app/Services/Licensing -type f -name "*.php" | while read -r file; do
             echo "Encrypting $file"
             rm -f "${file}.obf"
-            yakpro-po "$file" -o "${file}.obf" --config-file .github/yakpro-po.cnf
+            yakpro-po "$file" -o "${file}.obf" $YAK_FLAGS
             if [ -f "${file}.obf" ]; then
               mv "${file}.obf" "$file"
             fi
@@ -69,7 +71,7 @@ jobs:
 
           echo "Encrypting VerifyLicense Middleware..."
           rm -f app/Http/Middleware/VerifyLicense.php.obf
-          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php.obf --config-file .github/yakpro-po.cnf
+          yakpro-po app/Http/Middleware/VerifyLicense.php -o app/Http/Middleware/VerifyLicense.php.obf $YAK_FLAGS
           if [ -f app/Http/Middleware/VerifyLicense.php.obf ]; then
             mv app/Http/Middleware/VerifyLicense.php.obf app/Http/Middleware/VerifyLicense.php
           fi

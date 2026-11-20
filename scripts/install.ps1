@@ -163,14 +163,31 @@ if (-not $git) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Start MySQL and Create Database
+# 5. Configure MySQL as an Automatic Windows Service & Setup Database
 # -----------------------------------------------------------------------------
-Write-Step "Setting up MySQL Database..."
-$mysqlRunning = Get-Process -Name "mysqld" -ErrorAction SilentlyContinue
-if (-not $mysqlRunning) {
-    Write-Host "    Starting MySQL daemon..." -ForegroundColor Gray
-    Start-Process -FilePath "$xamppRoot\mysql\bin\mysqld.exe" -ArgumentList "--defaults-file=$xamppRoot\mysql\bin\my.ini --standalone" -WindowStyle Hidden
-    Start-Sleep -Seconds 3
+Write-Step "Configuring MySQL (Automatic Windows Service)..."
+
+$mysqlService = Get-Service -Name "mysql" -ErrorAction SilentlyContinue
+if (-not $mysqlService) {
+    Write-Host "    Registering MySQL as a background Windows Service..." -ForegroundColor Gray
+    Start-Process -FilePath "$xamppRoot\mysql\bin\mysqld.exe" -ArgumentList "--install `"mysql`" --defaults-file=`"$xamppRoot\mysql\bin\my.ini`"" -Wait -WindowStyle Hidden
+    $mysqlService = Get-Service -Name "mysql" -ErrorAction SilentlyContinue
+}
+
+if ($mysqlService) {
+    Set-Service -Name "mysql" -StartupType Automatic
+    if ($mysqlService.Status -ne "Running") {
+        Start-Service -Name "mysql" -ErrorAction SilentlyContinue
+    }
+    Write-Success "MySQL configured as an Automatic Windows Service (Auto-starts on reboot)."
+} else {
+    # Fallback to standalone background process if service registration is locked
+    $mysqlRunning = Get-Process -Name "mysqld" -ErrorAction SilentlyContinue
+    if (-not $mysqlRunning) {
+        Start-Process -FilePath "$xamppRoot\mysql\bin\mysqld.exe" -ArgumentList "--defaults-file=$xamppRoot\mysql\bin\my.ini --standalone" -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+    }
+    Write-Success "MySQL running in background."
 }
 
 # Test connection and create database
@@ -338,16 +355,33 @@ Write-Success "Database schema migrated."
 & $phpPath artisan optimize:clear 2>$null
 
 # -----------------------------------------------------------------------------
-# 9. Start Apache Web Server
+# 9. Configure Apache as an Automatic Windows Service
 # -----------------------------------------------------------------------------
-Write-Step "Starting Apache Web Server..."
-$apacheRunning = Get-Process -Name "httpd" -ErrorAction SilentlyContinue
-if (-not $apacheRunning) {
-    Start-Process -FilePath "$xamppRoot\apache\bin\httpd.exe" -WindowStyle Hidden
-    Start-Sleep -Seconds 2
-    Write-Success "Apache Web Server started."
+Write-Step "Configuring Apache Web Server (Automatic Windows Service)..."
+
+$apacheService = Get-Service -Name "Apache2.4" -ErrorAction SilentlyContinue
+if (-not $apacheService) {
+    Write-Host "    Registering Apache as a background Windows Service..." -ForegroundColor Gray
+    Start-Process -FilePath "$xamppRoot\apache\bin\httpd.exe" -ArgumentList "-k install" -Wait -WindowStyle Hidden
+    $apacheService = Get-Service -Name "Apache2.4" -ErrorAction SilentlyContinue
+}
+
+if ($apacheService) {
+    Set-Service -Name "Apache2.4" -StartupType Automatic
+    if ($apacheService.Status -ne "Running") {
+        Start-Service -Name "Apache2.4" -ErrorAction SilentlyContinue
+    }
+    Write-Success "Apache configured as an Automatic Windows Service (Auto-starts on reboot)."
 } else {
-    Write-Success "Apache Web Server is running."
+    # Fallback to background process if service registration is restricted
+    $apacheRunning = Get-Process -Name "httpd" -ErrorAction SilentlyContinue
+    if (-not $apacheRunning) {
+        Start-Process -FilePath "$xamppRoot\apache\bin\httpd.exe" -WindowStyle Hidden
+        Start-Sleep -Seconds 2
+        Write-Success "Apache Web Server started."
+    } else {
+        Write-Success "Apache Web Server is running."
+    }
 }
 
 # -----------------------------------------------------------------------------

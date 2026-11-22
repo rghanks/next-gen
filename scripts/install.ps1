@@ -58,17 +58,23 @@ if (-not $isAdmin) {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Check or Install XAMPP (Apache, PHP, MySQL)
+# 2. Check or Install Web Server & PHP Runtime (XAMPP / PHP)
 # -----------------------------------------------------------------------------
-Write-Step "Checking Web Server and Database Engine (XAMPP)..."
+Write-Step "Checking Web Server and PHP Runtime..."
 $xamppRoot = "C:\xampp"
 $phpPath = "$xamppRoot\php\php.exe"
-$mysqlPath = "$xamppRoot\mysql\bin\mysql.exe"
-$mysqldPath = "$xamppRoot\mysql\bin\mysqld.exe"
 $apachePath = "$xamppRoot\apache\bin\httpd.exe"
 
-if (-not (Test-Path $phpPath) -or -not (Test-Path $mysqlPath)) {
-    Write-WarnMsg "XAMPP not found at $xamppRoot."
+if (-not (Test-Path $phpPath)) {
+    $globalPhp = Get-Command "php.exe" -ErrorAction SilentlyContinue
+    if ($globalPhp) {
+        $phpPath = $globalPhp.Source
+        $xamppRoot = Split-Path (Split-Path $phpPath -Parent) -Parent
+    }
+}
+
+if (-not (Test-Path $phpPath)) {
+    Write-WarnMsg "PHP not found at C:\xampp\php\php.exe."
     Write-Host "    Attempting automated installation via Windows Package Manager (winget)..." -ForegroundColor Yellow
 
     $winget = Get-Command "winget" -ErrorAction SilentlyContinue
@@ -88,10 +94,10 @@ if (-not (Test-Path $phpPath) -or -not (Test-Path $mysqlPath)) {
         pause
         exit 1
     }
-} else {
-    $phpVersion = & $phpPath -r "echo PHP_VERSION;"
-    Write-Success "Found XAMPP with PHP $phpVersion at $xamppRoot"
 }
+
+$phpVersion = & $phpPath -r "echo PHP_VERSION;"
+Write-Success "Found PHP $phpVersion at $phpPath"
 
 # -----------------------------------------------------------------------------
 # 3. Configure PHP Extensions in php.ini
@@ -157,44 +163,46 @@ if (-not $git) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Configure MySQL as an Automatic Windows Service and Setup Database
+# 5. Check Database Engine (MySQL / MariaDB) and Create Database
 # -----------------------------------------------------------------------------
-Write-Step "Configuring MySQL (Automatic Windows Service)..."
+Write-Step "Checking Database Engine (MySQL / MariaDB)..."
 
-$mysqlService = Get-Service -Name "mysql" -ErrorAction SilentlyContinue
-if (-not $mysqlService) {
-    Write-Host "    Registering MySQL as a background Windows Service..." -ForegroundColor Gray
-    Start-Process -FilePath $mysqldPath -ArgumentList @("--install", "mysql", "--defaults-file=$xamppRoot\mysql\bin\my.ini") -Wait -WindowStyle Hidden
-    $mysqlService = Get-Service -Name "mysql" -ErrorAction SilentlyContinue
+# Test if database server is already running and reachable
+$dbCheckScript = "try { `$pdo = new PDO('mysql:host=127.0.0.1;port=3306', '$DbUser', '$DbPass', [PDO::ATTR_TIMEOUT => 2]); echo 'ONLINE'; } catch (Exception `$e) { echo 'OFFLINE'; }"
+$dbStatus = & $phpPath -r $dbCheckScript 2>$null
+
+if ($dbStatus -ne "ONLINE") {
+    Write-Host "    Database service not detected on port 3306. Attempting to start service..." -ForegroundColor Gray
+
+    # Try starting existing Windows services (MySQL / MariaDB)
+    $services = Get-Service -Name "mysql", "MariaDB", "MySQL*", "MariaDB*" -ErrorAction SilentlyContinue
+    foreach ($svc in $services) {
+        if ($svc.Status -ne "Running") {
+            Start-Service -Name $svc.Name -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    # If still not running, try starting XAMPP MySQL daemon
+    $dbStatus = & $phpPath -r $dbCheckScript 2>$null
+    if ($dbStatus -ne "ONLINE") {
+        $xamppMysqld = "$xamppRoot\mysql\bin\mysqld.exe"
+        if (Test-Path $xamppMysqld) {
+            Start-Process -FilePath $xamppMysqld -ArgumentList @("--defaults-file=$xamppRoot\mysql\bin\my.ini", "--standalone") -WindowStyle Hidden
+            Start-Sleep -Seconds 3
+        }
+    }
 }
 
-if ($mysqlService) {
-    Set-Service -Name "mysql" -StartupType Automatic
-    if ($mysqlService.Status -ne "Running") {
-        Start-Service -Name "mysql" -ErrorAction SilentlyContinue
-    }
-    Write-Success "MySQL configured as an Automatic Windows Service (Auto-starts on reboot)."
+# Create Database via PHP PDO directly (100% reliable across MySQL, MariaDB, XAMPP, or Program Files)
+$createDbScript = "try { `$pdo = new PDO('mysql:host=127.0.0.1;port=3306', '$DbUser', '$DbPass'); `$pdo->exec('CREATE DATABASE IF NOT EXISTS $DbName CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); echo 'DB_READY'; } catch (Exception `$e) { echo 'ERROR: ' . `$e->getMessage(); }"
+$createResult = & $phpPath -r $createDbScript 2>$null
+
+if ($createResult -eq "DB_READY") {
+    Write-Success "MySQL/MariaDB is online and database [$DbName] is verified/created."
 } else {
-    $mysqlRunning = Get-Process -Name "mysqld" -ErrorAction SilentlyContinue
-    if (-not $mysqlRunning) {
-        Start-Process -FilePath $mysqldPath -ArgumentList @("--defaults-file=$xamppRoot\mysql\bin\my.ini", "--standalone") -WindowStyle Hidden
-        Start-Sleep -Seconds 3
-    }
-    Write-Success "MySQL running in background."
-}
-
-$createDbSql = "CREATE DATABASE IF NOT EXISTS $DbName CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-$mysqlArgs = @("-u", $DbUser)
-if ($DbPass -ne "") {
-    $mysqlArgs += "-p$DbPass"
-}
-$mysqlArgs += @("-e", $createDbSql)
-
-try {
-    Start-Process -FilePath $mysqlPath -ArgumentList $mysqlArgs -Wait -NoNewWindow
-    Write-Success "Database [$DbName] verified/created."
-} catch {
-    Write-WarnMsg "Could not connect to MySQL automatically. Please ensure MySQL is running in XAMPP."
+    Write-WarnMsg "Database initialization note: $createResult"
+    Write-Host "    Please ensure MySQL or MariaDB is running and credentials match in .env." -ForegroundColor Yellow
 }
 
 # -----------------------------------------------------------------------------
@@ -325,10 +333,10 @@ Write-Success "Database schema migrated."
 # -----------------------------------------------------------------------------
 # 9. Configure Apache Web Server (Automatic Windows Service)
 # -----------------------------------------------------------------------------
-Write-Step "Configuring Apache Web Server (Automatic Windows Service)..."
+Write-Step "Configuring Apache Web Server..."
 
 $apacheService = Get-Service -Name "Apache2.4" -ErrorAction SilentlyContinue
-if (-not $apacheService) {
+if (-not $apacheService -and (Test-Path $apachePath)) {
     Write-Host "    Registering Apache as a background Windows Service..." -ForegroundColor Gray
     Start-Process -FilePath $apachePath -ArgumentList @("-k", "install") -Wait -WindowStyle Hidden
     $apacheService = Get-Service -Name "Apache2.4" -ErrorAction SilentlyContinue
@@ -342,12 +350,14 @@ if ($apacheService) {
     Write-Success "Apache configured as an Automatic Windows Service (Auto-starts on reboot)."
 } else {
     $apacheRunning = Get-Process -Name "httpd" -ErrorAction SilentlyContinue
-    if (-not $apacheRunning) {
+    if (-not $apacheRunning -and (Test-Path $apachePath)) {
         Start-Process -FilePath $apachePath -WindowStyle Hidden
         Start-Sleep -Seconds 2
         Write-Success "Apache Web Server started."
-    } else {
+    } elseif ($apacheRunning) {
         Write-Success "Apache Web Server is running."
+    } else {
+        Write-WarnMsg "Apache path not found at $apachePath. If using a custom web server, please verify it is running."
     }
 }
 

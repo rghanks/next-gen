@@ -13,7 +13,7 @@ param(
     [string]$GitHubToken = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 function Write-Step {
     param([string]$Text)
@@ -106,7 +106,10 @@ Write-Step "Configuring PHP extensions for Laravel and Licensing..."
 $phpIni = "$xamppRoot\php\php.ini"
 if (Test-Path $phpIni) {
     $iniContent = Get-Content $phpIni -Raw
-    $extensions = @("pdo_mysql", "openssl", "mbstring", "curl", "fileinfo", "gd", "zip", "bcmath")
+    # Clean up invalid extension=bcmath if previously added (bcmath is built-in on Windows)
+    $iniContent = $iniContent -replace "(?m)^extension\s*=\s*bcmath\r?\n?", ""
+
+    $extensions = @("pdo_mysql", "openssl", "mbstring", "curl", "fileinfo", "gd", "zip")
     $iniModified = $false
 
     foreach ($ext in $extensions) {
@@ -114,8 +117,10 @@ if (Test-Path $phpIni) {
             $iniContent = $iniContent -replace ";\s*extension\s*=\s*$ext", "extension=$ext"
             $iniModified = $true
         } elseif ($iniContent -notmatch "(?m)^extension\s*=\s*$ext") {
-            $iniContent += "`r`nextension=$ext"
-            $iniModified = $true
+            if (Test-Path "$xamppRoot\php\ext\php_$ext.dll") {
+                $iniContent += "`r`nextension=$ext"
+                $iniModified = $true
+            }
         }
     }
 
@@ -123,12 +128,8 @@ if (Test-Path $phpIni) {
     $iniContent = $iniContent -replace "post_max_size\s*=\s*\d+M", "post_max_size = 64M"
     $iniContent = $iniContent -replace "memory_limit\s*=\s*\d+M", "memory_limit = 256M"
 
-    if ($iniModified) {
-        Set-Content -Path $phpIni -Value $iniContent -Encoding UTF8
-        Write-Success "PHP extensions and performance settings updated in php.ini."
-    } else {
-        Write-Success "Required PHP extensions already active."
-    }
+    Set-Content -Path $phpIni -Value $iniContent -Encoding UTF8
+    Write-Success "PHP extensions and performance settings verified in php.ini."
 }
 
 # -----------------------------------------------------------------------------

@@ -80,11 +80,12 @@ if (-not (Test-Path $phpPath)) {
     $winget = Get-Command "winget" -ErrorAction SilentlyContinue
     if ($winget) {
         try {
-            Write-Host "    Downloading and installing XAMPP silently..." -ForegroundColor Gray
-            Start-Process "winget" -ArgumentList @("install", "--id", "ApacheFriends.Xampp.8.2", "-e", "--accept-package-agreements", "--accept-source-agreements", "--silent") -Wait -NoNewWindow
-            Write-Success "XAMPP installed successfully via winget."
+            Write-Host "    Downloading and installing XAMPP..." -ForegroundColor Gray
+            # BitRock InstallBuilder requires --mode unattended --unattendedmodeui none to prevent UAC/Antivirus popups from hanging
+            Start-Process "winget" -ArgumentList @("install", "--id", "ApacheFriends.Xampp.8.2", "-e", "--accept-package-agreements", "--accept-source-agreements", "--override", "`"--mode unattended --unattendedmodeui none`"") -Wait
+            Write-Success "XAMPP installation finished."
         } catch {
-            Write-Fail "Automated XAMPP install encountered an issue."
+            Write-WarnMsg "Automated XAMPP install encountered an issue."
         }
     }
 

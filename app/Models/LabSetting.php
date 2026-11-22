@@ -21,14 +21,40 @@ class LabSetting extends Model
         'print_top_margin' => 'integer',
         'print_bottom_margin' => 'integer',
         'print_with_header' => 'boolean',
+        'combine_reports_on_print' => 'boolean',
+        'sample_no_digits' => 'integer',
+        'starting_sample_no' => 'integer',
+        'is_sample_series_locked' => 'boolean',
     ];
+
+    protected static ?self $cachedCurrent = null;
+
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            static::$cachedCurrent = null;
+        });
+
+        static::deleted(function () {
+            static::$cachedCurrent = null;
+        });
+    }
+
+    public static function clearCache(): void
+    {
+        static::$cachedCurrent = null;
+    }
 
     /**
      * Get or create the singleton lab settings record.
      */
-    public static function current(): self
+    public static function current(bool $fresh = false): self
     {
-        return static::first() ?? static::create([
+        if (!$fresh && static::$cachedCurrent !== null) {
+            return static::$cachedCurrent;
+        }
+
+        $record = static::first() ?? static::create([
             'lab_name' => 'Central Hospital Laboratory',
             'tagline' => 'Department of Pathology & Clinical Diagnostics',
             'accreditation_text' => 'Fully Automated Computerized Diagnostic Lab • Accredited Quality Care',
@@ -46,8 +72,12 @@ class LabSetting extends Model
             'pathologist_degree' => 'M.B.B.S., MD (Path)',
             'pathologist_signature_path' => 'assets/files/signatures/sign_sonali.png',
             'show_barcode' => true,
-            'show_qr_code' => true,
+            'show_qr_code' => false,
+            'combine_reports_on_print' => false,
         ]);
+
+        static::$cachedCurrent = $record;
+        return $record;
     }
 
     /**
@@ -59,10 +89,11 @@ class LabSetting extends Model
             return '';
         }
 
-        $fullPath = public_path($relativePath);
+        $cleanPath = ltrim($relativePath, '/\\');
+        $fullPath = public_path($cleanPath);
         if (! file_exists($fullPath) || is_dir($fullPath)) {
             // Also check storage/app/public
-            $storagePath = storage_path('app/public/' . ltrim($relativePath, '/'));
+            $storagePath = storage_path('app/public/' . $cleanPath);
             if (file_exists($storagePath) && ! is_dir($storagePath)) {
                 $fullPath = $storagePath;
             } else {
@@ -87,12 +118,40 @@ class LabSetting extends Model
 
     public function getHeaderImageUri(): string
     {
-        return $this->getBase64Uri($this->header_image_path);
+        $uri = $this->getBase64Uri($this->header_image_path);
+        if (! $uri) {
+            try {
+                $printSetting = \App\Models\Legacy\HospitalPrintSetting::first();
+                if ($printSetting && $printSetting->lab_investigation) {
+                    $data = json_decode((string) $printSetting->lab_investigation, true);
+                    if (! empty($data['header_image'])) {
+                        $uri = $this->getBase64Uri($data['header_image']);
+                    }
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        return $uri;
     }
 
     public function getFooterImageUri(): string
     {
-        return $this->getBase64Uri($this->footer_image_path);
+        $uri = $this->getBase64Uri($this->footer_image_path);
+        if (! $uri) {
+            try {
+                $printSetting = \App\Models\Legacy\HospitalPrintSetting::first();
+                if ($printSetting && $printSetting->lab_investigation) {
+                    $data = json_decode((string) $printSetting->lab_investigation, true);
+                    if (! empty($data['footer_image'])) {
+                        $uri = $this->getBase64Uri($data['footer_image']);
+                    }
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        return $uri;
     }
 
     public function getTechnicianSignUri(): string

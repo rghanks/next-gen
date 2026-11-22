@@ -38,6 +38,10 @@ Route::prefix('lab')->name('lab.')->group(function () {
         // B. Unified Lab Orders & Worklist (Sample Collection + Result Entry + Tracking)
         Route::get('orders', [LabOrderDeskController::class, 'index'])->name('orders.index');
         Route::post('orders/collect-sample', [LabOrderDeskController::class, 'collectSample'])->name('orders.collect-sample');
+        Route::post('orders/update-sample-no', [LabOrderDeskController::class, 'updateSampleNumber'])->name('orders.update-sample-no');
+        Route::post('orders/set-sample-series', [LabOrderDeskController::class, 'setSampleSeries'])->name('orders.set-sample-series');
+        Route::get('orders/next-sample-no', [LabOrderDeskController::class, 'getNextSampleNumber'])->name('orders.next-sample-no');
+        Route::get('billing/next-sample-no', [BillingController::class, 'nextSampleNumber'])->name('billing.next-sample-no');
         Route::post('orders/approve', [LabOrderDeskController::class, 'approveOrder'])->name('orders.approve');
         Route::post('orders/reject', [LabOrderDeskController::class, 'rejectOrder'])->name('orders.reject');
 
@@ -88,6 +92,7 @@ Route::prefix('lab')->name('lab.')->group(function () {
         Route::get('settings', [LabSettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [LabSettingController::class, 'update'])->name('settings.update');
         Route::post('settings/print', [LabSettingController::class, 'updatePrintSettings'])->name('settings.update-print');
+        Route::post('settings/sample-series', [LabSettingController::class, 'lockSampleSeries'])->name('settings.lock-sample-series');
 
         // JSON API Endpoints
         Route::prefix('api')->name('api.')->group(function () {

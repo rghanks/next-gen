@@ -138,6 +138,11 @@
                 this.value = this.value.replace(/\D/g, '').slice(0, 10);
             });
 
+            // Refresh Sample Number in Series
+            $('#btn-refresh-sample-no').on('click', function() {
+                self.refreshNextSampleNo();
+            });
+
             // ════════════════════════════════════════════════════════════════
             // 2. LIVE PATIENT AUTOCOMPLETE SEARCH
             // ════════════════════════════════════════════════════════════════
@@ -284,6 +289,13 @@
                 self.removeItem(sId);
             });
 
+            $(document).on('input change', '.item-charge', function() {
+                const tr = $(this).closest('tr');
+                const sId = parseInt(tr.data('service-id'));
+                const charge = parseFloat($(this).val()) || 0;
+                self.updateItemCharge(sId, charge);
+            });
+
             $(document).on('change', '.item-qty', function() {
                 const tr = $(this).closest('tr');
                 const sId = parseInt(tr.data('service-id'));
@@ -291,7 +303,7 @@
                 self.updateItemQty(sId, qty);
             });
 
-            $(document).on('input', '.item-discount', function() {
+            $(document).on('input change', '.item-discount', function() {
                 const tr = $(this).closest('tr');
                 const sId = parseInt(tr.data('service-id'));
                 const disc = parseFloat($(this).val()) || 0;
@@ -579,10 +591,10 @@
             const existing = self.cartItems.find(i => i.service_id === service.id);
             if (existing) {
                 existing.qty += 1;
-                existing.amount = (existing.charge * existing.qty) - existing.discount;
+                existing.amount = Math.max(0, (existing.charge * existing.qty) - existing.discount);
                 window.lisToast('Increased quantity for ' + service.name, 'info');
             } else {
-                const charge = parseFloat(service.price) || 100;
+                const charge = parseFloat(service.price) >= 0 ? parseFloat(service.price) : 0;
                 self.cartItems.push({
                     service_id: service.id,
                     name: service.name,
@@ -605,12 +617,24 @@
             self.recalculateTotals();
         },
 
+        updateItemCharge: function(serviceId, charge) {
+            const item = this.cartItems.find(i => i.service_id === serviceId);
+            if (item) {
+                item.charge = Math.max(0, charge);
+                item.amount = Math.max(0, (item.charge * item.qty) - item.discount);
+                const tr = $(`#cart-tbody tr[data-service-id="${serviceId}"]`);
+                tr.find('.item-amount').val(item.amount.toFixed(2));
+                this.recalculateTotals();
+            }
+        },
+
         updateItemQty: function(serviceId, qty) {
             const item = this.cartItems.find(i => i.service_id === serviceId);
             if (item) {
-                item.qty = qty;
-                item.amount = (item.charge * item.qty) - item.discount;
-                this.renderCartTable();
+                item.qty = Math.max(1, qty);
+                item.amount = Math.max(0, (item.charge * item.qty) - item.discount);
+                const tr = $(`#cart-tbody tr[data-service-id="${serviceId}"]`);
+                tr.find('.item-amount').val(item.amount.toFixed(2));
                 this.recalculateTotals();
             }
         },
@@ -618,9 +642,10 @@
         updateItemDiscount: function(serviceId, discount) {
             const item = this.cartItems.find(i => i.service_id === serviceId);
             if (item) {
-                item.discount = discount;
+                item.discount = Math.max(0, discount);
                 item.amount = Math.max(0, (item.charge * item.qty) - item.discount);
-                this.renderCartTable();
+                const tr = $(`#cart-tbody tr[data-service-id="${serviceId}"]`);
+                tr.find('.item-amount').val(item.amount.toFixed(2));
                 this.recalculateTotals();
             }
         },
@@ -646,7 +671,7 @@
                         <td class="text-center serial-no">${idx + 1}</td>
                         <td class="text-center" style="color: var(--brand-text-muted);">${item.service_id}</td>
                         <td class="service-name-text fw-medium">${escapeHtml(item.name)}</td>
-                        <td><input type="number" step="0.01" class="cell-input readonly-bg item-charge" value="${item.charge.toFixed(2)}" readonly></td>
+                        <td><input type="number" step="0.01" min="0" class="cell-input text-end item-charge" value="${item.charge.toFixed(2)}" title="Edit rate"></td>
                         <td>
                             <select class="cell-select item-qty">
                                 <option value="1" ${item.qty === 1 ? 'selected' : ''}>1</option>
@@ -656,8 +681,8 @@
                                 <option value="5" ${item.qty === 5 ? 'selected' : ''}>5</option>
                             </select>
                         </td>
-                        <td><input type="number" step="0.01" min="0" class="cell-input item-discount" value="${item.discount}"></td>
-                        <td><input type="number" step="0.01" class="cell-input readonly-bg item-amount" value="${item.amount.toFixed(2)}" readonly></td>
+                        <td><input type="number" step="0.01" min="0" class="cell-input text-end item-discount" value="${item.discount}"></td>
+                        <td><input type="number" step="0.01" class="cell-input readonly-bg text-end item-amount" value="${item.amount.toFixed(2)}" readonly></td>
                         <td class="text-center">
                             <button type="button" class="btn-trash-outline btn-remove-item" title="Remove item">
                                 <i class="uil uil-trash-alt"></i>
@@ -874,6 +899,8 @@
             $('#patient_id').val('');
             $('#remarks').val('');
             $('#discount_percent').val('');
+            $('#custom_sample_no').val('');
+            this.refreshNextSampleNo();
 
             // Reset register form
             $('#reg_name, #reg_age, #reg_phone, #reg_city').val('');
@@ -961,6 +988,7 @@
 
             const referralDoctor = $('#referral_select').val() || 'Self';
             const remarks = $('#remarks').val();
+            const customSampleNo = $('#custom_sample_no').val() ? $('#custom_sample_no').val().trim() : null;
 
             const payments = [];
             $('.payment-field').each(function() {
@@ -987,10 +1015,15 @@
                 referral_doctor: referralDoctor,
                 clinical_notes: remarks || '',
                 payer_category: 'general',
+                custom_sample_no: customSampleNo || null,
                 items: self.cartItems.map(function(item) {
                     return {
                         service_id: item.service_id,
-                        discount: item.discount || 0
+                        charge: parseFloat(item.charge) || 0,
+                        price: parseFloat(item.charge) || 0,
+                        qty: parseFloat(item.qty) || 1,
+                        discount: parseFloat(item.discount) || 0,
+                        amount: parseFloat(item.amount) || 0
                     };
                 }),
                 bill_discount: discountAmt,
@@ -1028,6 +1061,10 @@
                         printWin.close();
                     }
 
+                    if (res.next_sample_no) {
+                        $('#custom_sample_no').attr('placeholder', 'Auto: ' + res.next_sample_no).val('');
+                    }
+
                     // Reload today's visits in real-time
                     self.loadTodayVisits();
 
@@ -1045,6 +1082,16 @@
                         msg = xhr.responseJSON.message;
                     }
                     window.lisToast(msg, 'danger');
+                }
+            });
+        },
+
+        refreshNextSampleNo: function() {
+            const self = this;
+            const url = self.endpoints.nextSampleUrl || '/lab/billing/next-sample-no';
+            $.get(url, function(res) {
+                if (res && res.next_sample_no) {
+                    $('#custom_sample_no').attr('placeholder', 'Auto: ' + res.next_sample_no).val('');
                 }
             });
         },

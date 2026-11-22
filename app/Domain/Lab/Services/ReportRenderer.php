@@ -56,7 +56,8 @@ class ReportRenderer
         bool $isPdf = false,
         ?int $topMargin = null,
         ?int $bottomMargin = null,
-        ?int $selectedItemId = null
+        ?int $selectedItemId = null,
+        ?bool $combineReports = null
     ): string {
         $order->loadMissing([
             'patient',
@@ -71,15 +72,16 @@ class ReportRenderer
 
         $verifyUrl = URL::signedRoute('lab.reports.verify-public', [
             'order' => $order->id,
-            'version' => $report->version,
+            'version' => $report->version ?? 1,
         ]);
 
         $barcodeUri = $this->generateBarcodeUri($order->accession_no);
         $qrCodeUri = $this->generateQrCodeUri($verifyUrl);
 
         $labSetting = \App\Models\LabSetting::current();
-        $topMargin = $topMargin ?? ($withLetterhead ? 8 : ($labSetting->print_top_margin ?? 35));
-        $bottomMargin = $bottomMargin ?? ($labSetting->print_bottom_margin ?? 20);
+        $topMargin = $topMargin ?? ($withLetterhead ? 4 : ($labSetting->print_top_margin ?? 35));
+        $bottomMargin = $bottomMargin ?? ($withLetterhead ? 4 : ($labSetting->print_bottom_margin ?? 20));
+        $combineReports = $combineReports ?? (bool) ($labSetting->combine_reports_on_print ?? false);
 
         /** @var view-string $viewName */
         $viewName = 'lab.reports.templates.report_layout';
@@ -96,6 +98,7 @@ class ReportRenderer
             'bottomMargin' => $bottomMargin,
             'labSetting' => $labSetting,
             'selectedItemId' => $selectedItemId,
+            'combineReports' => $combineReports,
         ])->render();
     }
 
@@ -111,9 +114,10 @@ class ReportRenderer
         ?int $topMargin = null,
         ?int $bottomMargin = null,
         string $variant = 'download',
-        ?int $selectedItemId = null
+        ?int $selectedItemId = null,
+        ?bool $combineReports = null
     ): array {
-        $html = $this->renderHtml($order, $report, $withLetterhead, true, $topMargin, $bottomMargin, $selectedItemId);
+        $html = $this->renderHtml($order, $report, $withLetterhead, true, $topMargin, $bottomMargin, $selectedItemId, $combineReports);
 
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4', 'portrait')
@@ -124,7 +128,8 @@ class ReportRenderer
         $sha256 = hash('sha256', $pdfOutput);
 
         $itemSuffix = $selectedItemId ? "_item{$selectedItemId}" : '';
-        $relativePath = sprintf('lab_reports/%d/report_v%d_%s%s.pdf', $order->id, $report->version, $variant, $itemSuffix);
+        $combineSuffix = ($combineReports !== null) ? ($combineReports ? '_cmb' : '_sep') : '';
+        $relativePath = sprintf('lab_reports/%d/report_v%d_%s%s%s.pdf', $order->id, $report->version, $variant, $itemSuffix, $combineSuffix);
         Storage::disk('local')->put($relativePath, $pdfOutput);
 
         if ($variant === 'download' && ! $selectedItemId) {

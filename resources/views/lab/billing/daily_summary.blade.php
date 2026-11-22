@@ -532,7 +532,7 @@
                         $paymentModes = $payments->pluck('payment_mode')->filter()->unique()->map(fn($m) => strtoupper($m))->implode(', ');
                         $servicesList = $items->pluck('service_name')->filter()->unique()->values();
 
-                        $patientName = ($b->prefix ? $b->prefix . ' ' : '') . trim(($b->Fname ?? '') . ' ' . ($b->Lname ?? ''));
+                        $patientName = trim(($b->Fname ?? '') . ' ' . ($b->Lname ?? ''));
                         if ($patientName === '') {
                             $patientName = 'Patient #' . ($b->uhid ?? $b->patient_id);
                         }
@@ -693,9 +693,9 @@
                             <span id="modalStatusBadge"></span>
                         </h6>
                         <div class="text-white-50 small" style="font-size: 11.5px;">
-                            Patient: <strong class="text-white" id="modalPatientName">-</strong> &nbsp;•&nbsp; 
-                            UHID: <strong class="text-white" id="modalUhid">-</strong> &nbsp;•&nbsp; 
-                            Date: <strong class="text-white" id="modalBillDate">-</strong>
+                            Patient: <strong class="text-white" id="modalHeaderPatientName">-</strong> &nbsp;•&nbsp; 
+                            UHID: <strong class="text-white" id="modalHeaderUhid">-</strong> &nbsp;•&nbsp; 
+                            Date: <strong class="text-white" id="modalHeaderBillDate">-</strong>
                         </div>
                     </div>
                 </div>
@@ -712,65 +712,84 @@
                 </div>
 
                 <div id="modalContentBody" style="display: none;">
-                    <div class="row g-3">
-                        <!-- Left 7 Cols: Billed Investigations & Add Service -->
-                        <div class="col-lg-7">
-                            <!-- Add Investigation Card -->
-                            <div class="card border p-2 bg-white mb-2 shadow-sm">
-                                <h6 class="fw-bold text-primary border-bottom pb-1 mb-2 d-flex align-items-center gap-1" style="font-size: 12px;">
-                                    <i class="uil uil-plus-circle"></i>
-                                    <span>Add Investigation / Service</span>
-                                </h6>
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-6 position-relative">
-                                        <label class="form-label mb-1" style="font-size: 10.5px; font-weight: 600;">Search & Select Service</label>
-                                        <input type="text" id="newServiceSearchInput" class="form-control form-control-sm" placeholder="Type test name or code..." autocomplete="off">
-                                        <input type="hidden" id="newServiceSelectedId">
-                                        <input type="hidden" id="newServiceSelectedName">
-                                        <!-- Autocomplete Results Box -->
-                                        <div id="serviceSearchDropdown" class="position-absolute bg-white border rounded shadow-lg w-100 mt-1 py-1" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1055; font-size: 11px; left: 0;"></div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label mb-1" style="font-size: 10.5px; font-weight: 600;">Rate (₹)</label>
-                                        <input type="number" step="0.01" id="newServiceCharge" class="form-control form-control-sm text-end fw-semibold" placeholder="0.00">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label mb-1" style="font-size: 10.5px; font-weight: 600;">Qty</label>
-                                        <input type="number" step="1" min="1" id="newServiceQty" class="form-control form-control-sm text-center" value="1">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" id="btnAddServiceRow" style="font-size: 11px;">
-                                            <i class="uil uil-plus"></i> Add
-                                        </button>
-                                    </div>
-                                </div>
+                    <!-- OPD Patient Information Bar (Same Component as /lab/billing) -->
+                    <div class="patient-details-below mt-0 mb-3" id="patient_info_bar" style="background: #ffffff; border: 1px solid var(--brand-border); border-radius: 6px; padding: 7px 14px;">
+                        <div class="detail-cell">
+                            <span class="detail-label">UHID:</span>
+                            <span class="detail-val text-teal fw-bold" id="modalUhid">-</span>
+                        </div>
+                        <div class="detail-cell">
+                            <span class="detail-label">Patient Name:</span>
+                            <span class="detail-val fw-bold text-dark" id="modalPatientName">-</span>
+                        </div>
+                        <div class="detail-cell">
+                            <span class="detail-label">Age / Sex:</span>
+                            <span class="detail-val" id="modalAgeSex">-</span>
+                        </div>
+                        <div class="detail-cell">
+                            <span class="detail-label">Mobile:</span>
+                            <span class="detail-val" id="modalMobileNo">-</span>
+                        </div>
+                        <div class="detail-cell">
+                            <span class="detail-label">Sample No:</span>
+                            <span class="detail-val badge bg-light text-dark border" id="modalSampleNo">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Billing Split Grid (Exact OPD Billing Workspace Layout) -->
+                    <div class="billing-split-grid">
+                        <!-- Left: Investigation Table & Catalog (Exact OPD Billing Component) -->
+                        <div class="pro-card investigations-card">
+                            <!-- Table of Billed Services -->
+                            <div class="investigations-table-container">
+                                <table class="investigations-table" id="cart-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" style="width: 44px;">#</th>
+                                            <th class="text-center" style="width: 65px;">ID</th>
+                                            <th>Investigation / Service Name</th>
+                                            <th class="text-end" style="width: 85px;">Rate (₹)</th>
+                                            <th class="text-center" style="width: 65px;">Qty</th>
+                                            <th class="text-end" style="width: 85px;">Disc (₹)</th>
+                                            <th class="text-end" style="width: 95px;">Amount (₹)</th>
+                                            <th class="text-center" style="width: 44px;">Del</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cart-tbody">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4 text-muted" style="font-style: italic;">
+                                                No investigations selected. Type below to search and add tests.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
 
-                            <!-- Billed Services Table Card -->
-                            <div class="card border p-2 bg-white mb-2 shadow-sm">
-                                <h6 class="fw-bold text-dark border-bottom pb-1 mb-2 d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                                    <span>Billed Investigations</span>
-                                    <span class="badge bg-primary text-white" id="modalItemsCount">0 items</span>
-                                </h6>
-                                <div style="max-height: 220px; overflow-y: auto;">
-                                    <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 11px;">
-                                        <thead class="table-light sticky-top">
-                                            <tr>
-                                                <th>Service Name</th>
-                                                <th style="width: 75px; text-align: right;">Rate (₹)</th>
-                                                <th style="width: 55px; text-align: center;">Qty</th>
-                                                <th style="width: 70px; text-align: right;">Disc (₹)</th>
-                                                <th style="width: 75px; text-align: right;">Net (₹)</th>
-                                                <th style="width: 55px; text-align: center;">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="modalItemsTbody"></tbody>
-                                    </table>
+                            <!-- Full-Width Investigation Search Bar (Same as /lab/billing) -->
+                            <div class="service-search-box w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--brand-slate);">
+                                        <i class="uil uil-search text-teal me-1"></i> Add Investigation / Procedure:
+                                    </span>
+                                    <span style="font-size: 11px; color: var(--brand-text-muted);">
+                                        Use &uarr; &darr; keys, <kbd style="font-size: 9px; padding: 1px 4px; background: #e2e8f0; color: #475569; border-radius: 3px;">Enter</kbd> to add
+                                    </span>
                                 </div>
+                                <div class="input-group mb-2 flex-nowrap">
+                                    <span class="input-group-text">
+                                        <i class="uil uil-search font-size-16"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="edit_search_service"
+                                           class="form-control"
+                                           placeholder="Type investigation name or code (e.g. LFT, ESR, Blood Sugar, CBC, USG)..."
+                                           autocomplete="off">
+                                </div>
+                                <ul id="edit_search_results" class="investigation-list-results w-100"></ul>
                             </div>
 
                             <!-- Cancelled / Soft-Deleted Services section -->
-                            <div class="card border p-2 bg-white shadow-sm" id="cardCancelledSection" style="display: none;">
+                            <div class="card border p-2 bg-white shadow-sm mt-3" id="cardCancelledSection" style="display: none;">
                                 <h6 class="fw-bold text-danger border-bottom pb-1 mb-1 d-flex justify-content-between align-items-center" style="font-size: 11.5px;">
                                     <span><i class="uil uil-trash-alt me-1"></i>Cancelled / Soft-Deleted Tests</span>
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle" id="modalCancelledCount">0</span>
@@ -783,103 +802,112 @@
                             </div>
                         </div>
 
-                        <!-- Right 5 Cols: Payments, Metadata, & Financial Ledger -->
-                        <div class="col-lg-5">
-                            <!-- Payment Details Card -->
-                            <div class="card border p-2 bg-white mb-2 shadow-sm">
-                                <h6 class="fw-bold text-dark border-bottom pb-1 mb-2 d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                                    <span class="d-flex align-items-center gap-1">
-                                        <i class="uil uil-money-bill text-success"></i>
-                                        <span>Payment Details</span>
-                                    </span>
-                                    <span class="badge bg-success text-white" id="modalTotalPaidBadge">Paid: ₹0.00</span>
-                                </h6>
-
-                                <!-- Existing Payments Table -->
-                                <div style="max-height: 130px; overflow-y: auto;" class="mb-2">
-                                    <table class="table table-sm table-bordered mb-0" style="font-size: 10.5px;">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width: 85px;">Mode</th>
-                                                <th style="width: 80px; text-align: right;">Amount (₹)</th>
-                                                <th>Txn / Ref</th>
-                                                <th style="width: 40px; text-align: center;">Void</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="modalPaymentsTbody"></tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Add New Payment Row -->
-                                <div class="bg-light p-2 rounded border">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="fw-bold text-dark" style="font-size: 10.5px;">Record New Payment</span>
-                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btnFillDueAmount" style="font-size: 10px;">Fill Balance Due</button>
-                                    </div>
-                                    <div class="row g-1 align-items-end">
-                                        <div class="col-4">
-                                            <label class="form-label mb-0" style="font-size: 9.5px; font-weight: 600;">Mode</label>
-                                            <select id="newPaymentMode" class="form-select form-select-sm" style="font-size: 10.5px;">
-                                                <option value="cash">Cash</option>
-                                                <option value="upi">UPI / QR</option>
-                                                <option value="card">Card</option>
-                                                <option value="net_banking">Net Banking</option>
-                                                <option value="cheque">Cheque</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-4">
-                                            <label class="form-label mb-0" style="font-size: 9.5px; font-weight: 600;">Amount (₹)</label>
-                                            <input type="number" step="0.01" min="0" id="newPaymentAmount" class="form-control form-control-sm text-end fw-bold" style="font-size: 10.5px;">
-                                        </div>
-                                        <div class="col-4">
-                                            <button type="button" class="btn btn-sm btn-success w-100 fw-bold" id="btnAddNewPaymentRow" style="font-size: 10.5px;">
-                                                <i class="uil uil-plus"></i> Add
-                                            </button>
-                                        </div>
-                                        <div class="col-12 mt-1">
-                                            <input type="text" id="newPaymentTxnId" class="form-control form-control-sm" placeholder="Optional Transaction ID / Reference..." style="font-size: 10.5px;">
-                                        </div>
-                                    </div>
-                                </div>
+                        <!-- Right: Payment & Settlement Panel (Exact OPD Billing Component) -->
+                        <div class="payment-panel">
+                            <div class="payment-panel-header">
+                                <h6 class="payment-panel-title mb-0">Payment Settlement</h6>
                             </div>
 
-                            <!-- Financial Summary & Metadata Card -->
-                            <div class="card border p-2 bg-white shadow-sm">
-                                <h6 class="fw-bold text-dark border-bottom pb-1 mb-2" style="font-size: 12px;">Financial Summary & Doctor</h6>
-                                
-                                <div class="mb-2">
-                                    <label class="form-label mb-1" style="font-size: 10.5px; font-weight: 600;">Referring Doctor</label>
-                                    <select id="editReferralDoctor" class="form-select form-select-sm" style="font-size: 11px;">
+                            <div class="payment-form-grid">
+                                <!-- Sub Total -->
+                                <div class="payment-row">
+                                    <label>Sub Total</label>
+                                    <input type="text" class="payment-input-readonly" id="lbl-subtotal" value="₹0.00" readonly>
+                                </div>
+
+                                <!-- Doctor / Ref By -->
+                                <div class="payment-row">
+                                    <label for="editReferralDoctor">Ref By</label>
+                                    <select id="editReferralDoctor" class="form-select payment-input-editable" style="font-size: 12px; height: 32px;">
                                         @foreach($referrals as $ref)
                                             <option value="{{ $ref->name }}">{{ $ref->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
 
-                                <table class="table table-sm table-borderless mb-0" style="font-size: 11.5px;">
-                                    <tr>
-                                        <td>Gross Amount:</td>
-                                        <td class="text-end fw-bold text-dark" id="modalGross">₹0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="align-middle">Bill Discount (₹):</td>
-                                        <td class="text-end" style="width: 110px;">
-                                            <input type="number" step="0.01" min="0" id="editBillDiscount" class="form-control form-control-sm text-end text-danger fw-bold" value="0.00" style="font-size: 11px; height: 26px;">
-                                        </td>
-                                    </tr>
-                                    <tr class="border-top">
-                                        <td><strong>Net Payable:</strong></td>
-                                        <td class="text-end fw-bold text-primary" id="modalNet">₹0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Total Collected:</td>
-                                        <td class="text-end fw-bold text-success" id="modalPaid">₹0.00</td>
-                                    </tr>
-                                    <tr class="border-top">
-                                        <td><strong>Balance Due:</strong></td>
-                                        <td class="text-end fw-bold" id="modalDue" style="font-size: 13px;">₹0.00</td>
-                                    </tr>
-                                </table>
+                                <!-- Final Discount (%) -->
+                                <div class="payment-row">
+                                    <label for="edit_discount_percent">Discount (%)</label>
+                                    <div class="input-group" style="max-width: 120px;">
+                                        <input type="number"
+                                               step="0.5"
+                                               min="0"
+                                               max="100"
+                                               class="form-control payment-input-editable text-end"
+                                               id="edit_discount_percent"
+                                               placeholder="0"
+                                               value=""
+                                               style="height: 32px; font-size: 13px;">
+                                        <span class="input-group-text bg-light text-muted px-2" style="font-size: 12px; height: 32px; border-color: var(--brand-border);">%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Discount (₹) -->
+                                <div class="payment-row">
+                                    <label for="editBillDiscount">Discount (₹)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control payment-input-editable text-end text-danger fw-bold" id="editBillDiscount" value="0.00" style="height: 32px; font-size: 13px;">
+                                </div>
+
+                                <!-- Net Payable Amount -->
+                                <div class="payment-row">
+                                    <label style="font-weight: 700; color: var(--brand-teal-dark);">Net Payable</label>
+                                    <input type="text" class="payment-input-readonly net-payable" id="lbl-total" value="₹0.00" readonly>
+                                </div>
+
+                                <hr class="my-1" style="border-color: #edf2f7;">
+
+                                <!-- Payment Tenders -->
+                                <!-- Cash -->
+                                <div class="payment-row">
+                                    <label for="edit_payment_cash"><i class="uil uil-money-bill text-success me-1"></i> Cash</label>
+                                    <input type="number" step="0.01" min="0" class="payment-input-editable text-end edit-payment-field" id="edit_payment_cash" data-mode="cash" placeholder="0.00" value="">
+                                </div>
+
+                                <!-- UPI / QR -->
+                                <div class="payment-row multi-col">
+                                    <label for="edit_payment_upi"><i class="uil uil-qrcode-scan text-teal me-1"></i> UPI / QR</label>
+                                    <input type="number" step="0.01" min="0" class="payment-input-editable text-end edit-payment-field" id="edit_payment_upi" data-mode="upi" placeholder="0.00" value="">
+                                    <input type="text" class="payment-input-editable" id="edit_tx_upi" placeholder="UTR / TRX ID">
+                                </div>
+
+                                <!-- Card / POS -->
+                                <div class="payment-row multi-col">
+                                    <label for="edit_payment_card"><i class="uil uil-credit-card text-primary me-1"></i> Card / POS</label>
+                                    <input type="number" step="0.01" min="0" class="payment-input-editable text-end edit-payment-field" id="edit_payment_card" data-mode="card" placeholder="0.00" value="">
+                                    <input type="text" class="payment-input-editable" id="edit_tx_card" placeholder="Slip Ref #">
+                                </div>
+
+                                <!-- Settlement Status Summary (Stacked 2 Lines) -->
+                                <div class="settlement-summary-stacked">
+                                    <div class="settlement-line">
+                                        <span class="label">Total Tendered:</span>
+                                        <span class="amount text-paid" id="lbl-total-paid">₹0.00</span>
+                                    </div>
+                                    <div class="settlement-line">
+                                        <span class="label">Balance Due:</span>
+                                        <span class="amount text-due" id="lbl-due-amount">₹0.00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Prior Recorded Payments Section -->
+                                <div class="mt-2" id="existingPaymentsContainer" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-muted fw-bold" style="font-size: 10px; text-transform: uppercase;">Prior Recorded Payments</span>
+                                        <span class="badge bg-light text-secondary border" id="modalTotalPaidBadge">Paid: ₹0.00</span>
+                                    </div>
+                                    <div style="max-height: 90px; overflow-y: auto;" class="border rounded bg-white p-1">
+                                        <table class="table table-sm table-borderless mb-0" style="font-size: 10.5px;">
+                                            <tbody id="modalPaymentsTbody"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons Footer inside Panel -->
+                                <div class="payment-actions-footer mt-2">
+                                    <button type="button" class="btn-generate-bill w-100 justify-content-center" id="btnSaveFullBillPanel" title="Save Bill Changes">
+                                        <i class="uil uil-check-circle me-1"></i> Save Bill Changes
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -981,6 +1009,19 @@
     let cancelledDraft = [];
     let paymentsDraft = [];
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    const billDetailsUrlTemplate = "{{ route('lab.billing.details', ['bill' => '__BILL_ID__']) }}";
+    const billSaveFullUrlTemplate = "{{ route('lab.billing.save-full', ['bill' => '__BILL_ID__']) }}";
+
     window.openEditBillModal = function(billId) {
         activeModalBillId = billId;
         const modal = new bootstrap.Modal(document.getElementById('editBillModal'));
@@ -990,7 +1031,8 @@
         $('#modalContentBody').hide();
         $('#serviceSearchDropdown').hide();
 
-        $.get(`/lab/billing/${billId}/details`, function(res) {
+        const detailsUrl = billDetailsUrlTemplate.replace('__BILL_ID__', billId);
+        $.get(detailsUrl, function(res) {
             if (!res.success) {
                 alert('Could not load bill details.');
                 return;
@@ -1000,15 +1042,39 @@
             activeModalBarcodeUrl = res.bill.barcode_url;
 
             $('#modalBillBadge').text(res.bill.bill_number ? 'Bill #' + res.bill.bill_number : '#' + res.bill.id);
-            $('#modalPatientName').text(res.patient.name);
+            $('#modalHeaderPatientName').text(res.patient.name);
+            $('#modalHeaderUhid').text(res.patient.uhid);
+            $('#modalHeaderBillDate').text(res.bill.created_at);
+
             $('#modalUhid').text(res.patient.uhid);
-            $('#modalBillDate').text(res.bill.created_at);
+            $('#modalPatientName').text(res.patient.name);
+            $('#modalAgeSex').text(res.patient.age);
+            $('#modalMobileNo').text(res.patient.mobile_no);
+            $('#modalSampleNo').text(res.bill.sample_no || '-');
+
+            // Reset search & tender inputs
+            $('#edit_search_service').val('');
+            $('#edit_search_results').empty().hide();
+            $('#edit_payment_cash').val('');
+            $('#edit_payment_upi').val('');
+            $('#edit_tx_upi').val('');
+            $('#edit_payment_card').val('');
+            $('#edit_tx_card').val('');
 
             // Populate Referrals
             if (res.referral_doctor) {
+                if ($('#editReferralDoctor option').filter(function() { return $(this).val() === res.referral_doctor; }).length === 0) {
+                    $('#editReferralDoctor').append(new Option(res.referral_doctor, res.referral_doctor));
+                }
                 $('#editReferralDoctor').val(res.referral_doctor);
             }
-            $('#editBillDiscount').val(parseFloat(res.financials.bill_discount || 0).toFixed(2));
+
+            // Sync discount & calculate %
+            const gross = parseFloat(res.financials.gross_amount || 0);
+            const disc = parseFloat(res.financials.bill_discount || 0);
+            $('#editBillDiscount').val(disc.toFixed(2));
+            const discPer = gross > 0 ? (disc / gross) * 100 : 0;
+            $('#edit_discount_percent').val(discPer > 0 ? discPer.toFixed(1) : '');
 
             // Load Items into draft array
             servicesDraft = (res.items || []).map(it => ({
@@ -1049,39 +1115,49 @@
         });
     };
 
-    // Render Active Services Table
+    // Render Active Services Table (Exact OPD Billing investigations-table layout with live editable test names)
     function renderServicesTable() {
         const activeItems = servicesDraft.filter(it => !it.is_removed);
-        $('#modalItemsCount').text(activeItems.length + ' items');
 
         let html = '';
         if (activeItems.length === 0) {
-            html = `<tr><td colspan="6" class="text-center text-muted py-3">No active services on this bill. Add a service above.</td></tr>`;
+            html = `<tr><td colspan="8" class="text-center py-4 text-muted" style="font-style: italic;">No investigations selected. Type below to search and add tests.</td></tr>`;
         } else {
             servicesDraft.forEach((it, idx) => {
                 if (it.is_removed) return;
                 const net = Math.max(0, (it.charges * it.qty) - it.discount);
                 html += `
-                    <tr data-index="${idx}">
-                        <td class="align-middle">
-                            <strong class="text-dark">${it.service_name}</strong>
-                            ${it.short_code ? `<span class="badge bg-light text-secondary border font-monospace ms-1" style="font-size: 9px;">${it.short_code}</span>` : ''}
-                            ${!it.id ? `<span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 8.5px;">NEW</span>` : ''}
+                    <tr data-index="${idx}" data-service-id="${it.service_id || ''}">
+                        <td class="text-center serial-no" style="vertical-align: middle;">${idx + 1}</td>
+                        <td class="text-center text-muted" style="vertical-align: middle; font-size: 11px;">${it.service_id || '-'}</td>
+                        <td class="position-relative" style="vertical-align: middle;">
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="text"
+                                       class="cell-input service-name-input fw-medium"
+                                       data-idx="${idx}"
+                                       value="${escapeHtml(it.service_name)}"
+                                       placeholder="Test name..."
+                                       autocomplete="off"
+                                       style="font-size: 12px; height: 30px; border: 1px solid var(--brand-border); border-radius: 4px; padding: 2px 6px;">
+                                ${it.short_code ? `<span class="badge bg-light text-secondary border font-monospace flex-shrink-0" style="font-size: 9px;">${escapeHtml(it.short_code)}</span>` : ''}
+                                ${!it.id ? `<span class="badge bg-success-subtle text-success border border-success-subtle flex-shrink-0" style="font-size: 8.5px;">NEW</span>` : ''}
+                            </div>
+                            <div class="row-service-dropdown shadow" style="display: none; position: absolute; top: 100%; left: 0; min-width: 280px; max-width: 360px; z-index: 1060; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; max-height: 180px; overflow-y: auto;"></div>
                         </td>
-                        <td class="align-middle">
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end input-service-charge" data-idx="${idx}" value="${it.charges.toFixed(2)}" style="font-size: 11px; height: 26px;">
+                        <td style="vertical-align: middle;">
+                            <input type="number" step="0.01" min="0" class="cell-input text-end item-charge" data-idx="${idx}" value="${it.charges.toFixed(2)}" title="Edit rate" style="font-size: 12px; height: 30px; border: 1px solid var(--brand-border); border-radius: 4px;">
                         </td>
-                        <td class="align-middle">
-                            <input type="number" step="1" min="1" class="form-control form-control-sm text-center input-service-qty" data-idx="${idx}" value="${it.qty}" style="font-size: 11px; height: 26px;">
+                        <td style="vertical-align: middle;">
+                            <input type="number" step="1" min="1" class="cell-input text-center item-qty" data-idx="${idx}" value="${it.qty}" title="Edit quantity" style="font-size: 12px; height: 30px; border: 1px solid var(--brand-border); border-radius: 4px;">
                         </td>
-                        <td class="align-middle">
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end input-service-discount" data-idx="${idx}" value="${it.discount.toFixed(2)}" style="font-size: 11px; height: 26px;">
+                        <td style="vertical-align: middle;">
+                            <input type="number" step="0.01" min="0" class="cell-input text-end item-discount" data-idx="${idx}" value="${it.discount.toFixed(2)}" title="Edit discount" style="font-size: 12px; height: 30px; border: 1px solid var(--brand-border); border-radius: 4px;">
                         </td>
-                        <td class="align-middle text-end fw-bold text-dark item-net-col">
-                            ₹${net.toFixed(2)}
+                        <td style="vertical-align: middle;">
+                            <input type="number" step="0.01" class="cell-input readonly-bg text-end item-amount fw-bold text-dark" value="${net.toFixed(2)}" readonly style="font-size: 12px; height: 30px; background-color: #f8fafc; border: 1px solid var(--brand-border); border-radius: 4px;">
                         </td>
-                        <td class="align-middle text-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm p-1 btn-remove-service" data-idx="${idx}" title="Cancel & remove test" style="line-height: 1; font-size: 11px;">
+                        <td class="text-center" style="vertical-align: middle;">
+                            <button type="button" class="btn-trash-outline btn-remove-item" data-idx="${idx}" title="Remove test">
                                 <i class="uil uil-trash-alt"></i>
                             </button>
                         </td>
@@ -1089,7 +1165,7 @@
                 `;
             });
         }
-        $('#modalItemsTbody').html(html);
+        $('#cart-tbody').html(html);
     }
 
     // Render Cancelled / Soft-Deleted Services
@@ -1105,7 +1181,7 @@
         cancelledDraft.forEach(it => {
             html += `
                 <tr>
-                    <td style="text-decoration: line-through;">${it.service_name}</td>
+                    <td style="text-decoration: line-through;">${escapeHtml(it.service_name)}</td>
                     <td class="text-end">₹${parseFloat(it.charges).toFixed(2)}</td>
                     <td class="text-end text-danger" style="font-size: 9.5px;">
                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelled</span>
@@ -1117,46 +1193,36 @@
         $('#modalCancelledTbody').html(html);
     }
 
-    // Render Payments Table
+    // Render Prior Payments Table
     function renderPaymentsTable() {
         const activePayments = paymentsDraft.filter(p => !p.is_deleted);
-        let html = '';
-
         if (activePayments.length === 0) {
-            html = `<tr><td colspan="4" class="text-center text-muted py-2">No payments recorded.</td></tr>`;
-        } else {
-            paymentsDraft.forEach((p, idx) => {
-                if (p.is_deleted) return;
-                html += `
-                    <tr data-p-idx="${idx}">
-                        <td class="align-middle">
-                            <select class="form-select form-select-sm select-payment-mode" data-idx="${idx}" style="font-size: 10px; height: 26px; padding: 2px 5px;">
-                                <option value="cash" ${p.payment_mode === 'cash' ? 'selected' : ''}>Cash</option>
-                                <option value="upi" ${p.payment_mode === 'upi' ? 'selected' : ''}>UPI / QR</option>
-                                <option value="card" ${p.payment_mode === 'card' ? 'selected' : ''}>Card</option>
-                                <option value="net_banking" ${p.payment_mode === 'net_banking' ? 'selected' : ''}>Net Banking</option>
-                                <option value="cheque" ${p.payment_mode === 'cheque' ? 'selected' : ''}>Cheque</option>
-                            </select>
-                        </td>
-                        <td class="align-middle">
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end fw-bold input-payment-amount" data-idx="${idx}" value="${p.amount.toFixed(2)}" style="font-size: 10.5px; height: 26px;">
-                        </td>
-                        <td class="align-middle">
-                            <input type="text" class="form-control form-control-sm input-payment-txnid" data-idx="${idx}" value="${p.transaction_id || ''}" placeholder="Txn / Ref" style="font-size: 10px; height: 26px;">
-                        </td>
-                        <td class="align-middle text-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm p-1 btn-void-payment" data-idx="${idx}" title="Void this payment" style="line-height: 1; font-size: 10.5px;">
-                                <i class="uil uil-times"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
+            $('#existingPaymentsContainer').hide();
+            $('#modalPaymentsTbody').empty();
+            return;
         }
+
+        $('#existingPaymentsContainer').show();
+        let html = '';
+        paymentsDraft.forEach((p, idx) => {
+            if (p.is_deleted) return;
+            html += `
+                <tr data-p-idx="${idx}">
+                    <td class="align-middle fw-bold text-uppercase text-dark" style="width: 70px;">${escapeHtml(p.payment_mode)}</td>
+                    <td class="align-middle text-end fw-bold text-success" style="width: 75px;">₹${p.amount.toFixed(2)}</td>
+                    <td class="align-middle text-muted" style="font-size: 9.5px;">${escapeHtml(p.transaction_id || p.date || '')}</td>
+                    <td class="align-middle text-center" style="width: 30px;">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-void-payment" data-idx="${idx}" title="Void this payment">
+                            <i class="uil uil-times-circle"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
         $('#modalPaymentsTbody').html(html);
     }
 
-    // Dynamic Financial Calculations
+    // Dynamic Financial Calculations (Exact OPD Billing Settlement Engine)
     function calculateFinancials() {
         let gross = 0.0;
         servicesDraft.forEach(it => {
@@ -1168,157 +1234,263 @@
         const billDiscount = parseFloat($('#editBillDiscount').val()) || 0.0;
         const net = Math.max(0, gross - billDiscount);
 
-        let totalPaid = 0.0;
+        let priorPaid = 0.0;
         paymentsDraft.forEach(p => {
             if (!p.is_deleted) {
-                totalPaid += p.amount;
+                priorPaid += p.amount;
             }
         });
 
-        const due = Math.max(0, Math.round((net - totalPaid) * 100) / 100);
+        const newCash = parseFloat($('#edit_payment_cash').val()) || 0.0;
+        const newUpi = parseFloat($('#edit_payment_upi').val()) || 0.0;
+        const newCard = parseFloat($('#edit_payment_card').val()) || 0.0;
+        const newTenders = newCash + newUpi + newCard;
 
-        $('#modalGross').text('₹' + gross.toFixed(2));
-        $('#modalNet').text('₹' + net.toFixed(2));
-        $('#modalPaid').text('₹' + totalPaid.toFixed(2));
-        $('#modalTotalPaidBadge').text('Paid: ₹' + totalPaid.toFixed(2));
-        $('#modalDue').text('₹' + due.toFixed(2));
+        const totalTendered = priorPaid + newTenders;
+        const due = Math.max(0, Math.round((net - totalTendered) * 100) / 100);
 
-        if (due > 0) {
-            $('#modalDue').removeClass('text-success').addClass('text-danger');
-            $('#modalStatusBadge').html('<span class="badge bg-danger ms-1"><i class="uil uil-exclamation-circle me-1"></i>Due / Unpaid</span>');
-            $('#newPaymentAmount').val(due.toFixed(2));
-        } else {
-            $('#modalDue').removeClass('text-danger').addClass('text-success');
+        $('#lbl-subtotal').val('₹' + gross.toFixed(2));
+        $('#lbl-total').val('₹' + net.toFixed(2));
+        $('#lbl-total-paid').text('₹' + totalTendered.toFixed(2));
+        $('#modalTotalPaidBadge').text('Paid: ₹' + priorPaid.toFixed(2));
+        $('#lbl-due-amount').text('₹' + due.toFixed(2));
+
+        if (due <= 0) {
+            $('#lbl-due-amount').removeClass('text-due').css('color', 'var(--brand-teal)');
             $('#modalStatusBadge').html('<span class="badge bg-success ms-1"><i class="uil uil-check-circle me-1"></i>Fully Paid</span>');
-            $('#newPaymentAmount').val('0.00');
+        } else if (totalTendered > 0) {
+            $('#lbl-due-amount').addClass('text-due').css('color', '');
+            $('#modalStatusBadge').html('<span class="badge bg-warning text-dark ms-1"><i class="uil uil-clock me-1"></i>Partially Paid</span>');
+        } else {
+            $('#lbl-due-amount').addClass('text-due').css('color', '');
+            $('#modalStatusBadge').html('<span class="badge bg-danger ms-1"><i class="uil uil-exclamation-circle me-1"></i>Due / Unpaid</span>');
         }
     }
 
-    // 4. Service Autocomplete Live Search
-    let searchDebounceTimer = null;
-    $('#newServiceSearchInput').on('input', function() {
+    // 4. Investigation Catalog Live Search with Keyboard Navigation (Same as /lab/billing)
+    let editSearchTimer = null;
+    let editResultIndex = -1;
+
+    $('#edit_search_service').on('input', function() {
         const query = $(this).val().trim();
-        clearTimeout(searchDebounceTimer);
+        clearTimeout(editSearchTimer);
+        editResultIndex = -1;
 
         if (query.length < 1) {
-            $('#serviceSearchDropdown').hide();
+            $('#edit_search_results').empty().hide();
             return;
         }
 
-        searchDebounceTimer = setTimeout(function() {
+        editSearchTimer = setTimeout(function() {
+            $.get("{{ route('lab.api.services.search') }}", { q: query }, function(data) {
+                const list = data.results || data || [];
+                const ul = $('#edit_search_results').empty();
+                if (list.length === 0) {
+                    ul.append('<li style="color: #64748b; font-style: italic; padding: 10px;">No matching investigation found in catalog.</li>').show();
+                    return;
+                }
+
+                list.forEach(function(item) {
+                    const li = $('<li></li>');
+                    li.data('service', item);
+
+                    let displayTitle = item.name || item.service;
+                    if (item.short_code || item.code) {
+                        displayTitle += ` <span style="color: #64748b; font-size: 11px;">(${item.short_code || item.code})</span>`;
+                    }
+
+                    let content = `<span>${escapeHtml(displayTitle)}</span>`;
+                    content += `<div class="d-flex align-items-center gap-2">`;
+                    if (item.is_outsource) {
+                        content += `<span class="badge-outsource">Outsource</span>`;
+                    }
+                    const price = parseFloat(item.price || item.charge || item.charges || 0);
+                    content += `<span class="badge-rate">₹${price.toFixed(0)}</span>`;
+                    content += `</div>`;
+
+                    li.html(content);
+                    ul.append(li);
+                });
+                ul.show();
+            });
+        }, 160);
+    });
+
+    $('#edit_search_service').on('keydown', function(e) {
+        const items = $('#edit_search_results li:not(:first-child:contains("No matching"))');
+        if (!items.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            editResultIndex = (editResultIndex + 1) % items.length;
+            items.removeClass('active');
+            const activeEl = items.eq(editResultIndex).addClass('active');
+            const container = $('#edit_search_results');
+            const scrollPos = activeEl.position().top + container.scrollTop();
+            if (scrollPos < container.scrollTop() || scrollPos > container.scrollTop() + container.height()) {
+                container.scrollTop(scrollPos - 40);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            editResultIndex = (editResultIndex - 1 + items.length) % items.length;
+            items.removeClass('active');
+            const activeEl = items.eq(editResultIndex).addClass('active');
+            const container = $('#edit_search_results');
+            const scrollPos = activeEl.position().top + container.scrollTop();
+            if (scrollPos < container.scrollTop() || scrollPos > container.scrollTop() + container.height()) {
+                container.scrollTop(scrollPos - 40);
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (editResultIndex >= 0 && editResultIndex < items.length) {
+                items.eq(editResultIndex).trigger('click');
+            } else if (items.length > 0) {
+                items.first().trigger('click');
+            }
+        }
+    });
+
+    // Add test to bill when clicked from results list
+    $(document).on('click', '#edit_search_results li', function() {
+        const s = $(this).data('service');
+        if (s) {
+            const charge = parseFloat(s.price || s.charge || s.charges || 0);
+            servicesDraft.push({
+                id: null,
+                service_id: s.id,
+                service_name: s.name || s.service,
+                short_code: s.short_code || s.code || '',
+                charges: charge,
+                qty: 1,
+                discount: 0,
+                is_removed: false
+            });
+
+            $('#edit_search_service').val('').focus();
+            $('#edit_search_results').empty().hide();
+
+            renderServicesTable();
+            calculateFinancials();
+        }
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#edit_search_service, #edit_search_results').length) {
+            $('#edit_search_results').hide();
+        }
+    });
+
+    // 5. Autocomplete for editable Service Name in table rows
+    let rowSearchTimer = null;
+    $(document).on('input', '.service-name-input', function() {
+        const input = $(this);
+        const idx = input.data('idx');
+        const query = input.val().trim();
+        const dropdown = input.closest('td').find('.row-service-dropdown');
+
+        servicesDraft[idx].service_name = input.val();
+
+        clearTimeout(rowSearchTimer);
+        if (query.length < 1) {
+            dropdown.hide();
+            return;
+        }
+
+        rowSearchTimer = setTimeout(function() {
             $.get("{{ route('lab.api.services.search') }}", { q: query }, function(data) {
                 const list = data.results || data || [];
                 if (list.length === 0) {
-                    $('#serviceSearchDropdown').html('<div class="p-2 text-muted">No investigations found.</div>').show();
+                    dropdown.html('<div class="p-2 text-muted" style="font-size:10.5px;">No tests found.</div>').show();
                     return;
                 }
 
                 let itemsHtml = '';
                 list.forEach(srv => {
-                    const price = parseFloat(srv.charge || srv.charges || 0).toFixed(2);
+                    const price = parseFloat(srv.charge || srv.charges || srv.price || 0).toFixed(2);
                     itemsHtml += `
-                        <div class="px-2 py-1.5 service-search-item" style="cursor: pointer; border-bottom: 1px solid #f1f5f9;" 
-                             data-id="${srv.id}" data-name="${srv.name || srv.service}" data-charge="${price}">
+                        <div class="px-2 py-1.5 row-service-item" style="cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 11px;" 
+                             data-row-idx="${idx}" data-id="${srv.id}" data-name="${escapeHtml(srv.name || srv.service)}" data-charge="${price}" data-code="${escapeHtml(srv.short_code || srv.code || '')}">
                             <div class="d-flex justify-content-between align-items-center">
-                                <strong>${srv.name || srv.service}</strong>
+                                <strong>${escapeHtml(srv.name || srv.service)}</strong>
                                 <span class="badge bg-primary text-white">₹${price}</span>
                             </div>
-                            <div class="text-muted" style="font-size: 9.5px;">Code: ${srv.short_code || srv.code || '-'}</div>
+                            <div class="text-muted" style="font-size: 9.5px;">Code: ${escapeHtml(srv.short_code || srv.code || '-')}</div>
                         </div>
                     `;
                 });
-                $('#serviceSearchDropdown').html(itemsHtml).show();
+                dropdown.html(itemsHtml).show();
             });
-        }, 250);
+        }, 200);
     });
 
-    // Select Service from Search Dropdown
-    $(document).on('click', '.service-search-item', function() {
-        const id = $(this).data('id');
-        const name = $(this).data('name');
-        const charge = $(this).data('charge');
+    // Select test from row autocomplete dropdown -> auto-load rate & recalculate
+    $(document).on('click', '.row-service-item', function() {
+        const rowIdx = $(this).data('row-idx');
+        const srvId = $(this).data('id');
+        const srvName = $(this).data('name');
+        const srvCharge = parseFloat($(this).data('charge')) || 0;
+        const srvCode = $(this).data('code') || '';
 
-        $('#newServiceSelectedId').val(id);
-        $('#newServiceSelectedName').val(name);
-        $('#newServiceSearchInput').val(name);
-        $('#newServiceCharge').val(charge);
-        $('#serviceSearchDropdown').hide();
-    });
+        // Update draft model
+        servicesDraft[rowIdx].service_id = srvId;
+        servicesDraft[rowIdx].service_name = srvName;
+        servicesDraft[rowIdx].short_code = srvCode;
+        servicesDraft[rowIdx].charges = srvCharge;
 
-    // Close Dropdown on Click Outside
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('#newServiceSearchInput, #serviceSearchDropdown').length) {
-            $('#serviceSearchDropdown').hide();
-        }
-    });
+        // Update DOM row values directly
+        const tr = $(`#cart-tbody tr[data-index="${rowIdx}"]`);
+        tr.attr('data-service-id', srvId);
+        tr.find('td:nth-child(2)').text(srvId);
+        tr.find('.service-name-input').val(srvName);
+        tr.find('.item-charge').val(srvCharge.toFixed(2));
+        tr.find('.row-service-dropdown').hide();
 
-    // 5. Add Service to Bill
-    $('#btnAddServiceRow').on('click', function() {
-        const sId = parseInt($('#newServiceSelectedId').val());
-        const sName = $('#newServiceSelectedName').val() || $('#newServiceSearchInput').val().trim();
-        const charge = parseFloat($('#newServiceCharge').val()) || 0;
-        const qty = parseFloat($('#newServiceQty').val()) || 1;
+        const net = Math.max(0, (srvCharge * servicesDraft[rowIdx].qty) - servicesDraft[rowIdx].discount);
+        tr.find('.item-amount').val(net.toFixed(2));
 
-        if (!sId || !sName) {
-            alert('Please search and select a valid test/service first.');
-            $('#newServiceSearchInput').focus();
-            return;
-        }
-
-        // Add to services draft
-        servicesDraft.push({
-            id: null, // brand new service
-            service_id: sId,
-            service_name: sName,
-            short_code: '',
-            charges: charge,
-            qty: qty,
-            discount: 0,
-            is_removed: false
-        });
-
-        // Reset add inputs
-        $('#newServiceSelectedId').val('');
-        $('#newServiceSelectedName').val('');
-        $('#newServiceSearchInput').val('');
-        $('#newServiceCharge').val('');
-        $('#newServiceQty').val('1');
-
-        renderServicesTable();
         calculateFinancials();
+    });
+
+    // Close row dropdown on click outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.service-name-input, .row-service-dropdown').length) {
+            $('.row-service-dropdown').hide();
+        }
     });
 
     // 6. Inline Service Edits (Rate, Qty, Discount)
-    $(document).on('input', '.input-service-charge', function() {
+    $(document).on('input', '.item-charge', function() {
         const idx = $(this).data('idx');
         servicesDraft[idx].charges = parseFloat($(this).val()) || 0;
+        const net = Math.max(0, (servicesDraft[idx].charges * servicesDraft[idx].qty) - servicesDraft[idx].discount);
+        $(this).closest('tr').find('.item-amount').val(net.toFixed(2));
         calculateFinancials();
-        renderServicesTable();
     });
 
-    $(document).on('input', '.input-service-qty', function() {
+    $(document).on('input', '.item-qty', function() {
         const idx = $(this).data('idx');
         servicesDraft[idx].qty = parseFloat($(this).val()) || 1;
+        const net = Math.max(0, (servicesDraft[idx].charges * servicesDraft[idx].qty) - servicesDraft[idx].discount);
+        $(this).closest('tr').find('.item-amount').val(net.toFixed(2));
         calculateFinancials();
-        renderServicesTable();
     });
 
-    $(document).on('input', '.input-service-discount', function() {
+    $(document).on('input', '.item-discount', function() {
         const idx = $(this).data('idx');
         servicesDraft[idx].discount = parseFloat($(this).val()) || 0;
+        const net = Math.max(0, (servicesDraft[idx].charges * servicesDraft[idx].qty) - servicesDraft[idx].discount);
+        $(this).closest('tr').find('.item-amount').val(net.toFixed(2));
         calculateFinancials();
-        renderServicesTable();
     });
 
     // 7. Remove Service (Marks as Cancelled and Soft-Deletes)
-    $(document).on('click', '.btn-remove-service', function() {
+    $(document).on('click', '.btn-remove-item', function() {
         const idx = $(this).data('idx');
         const item = servicesDraft[idx];
 
         if (confirm(`Are you sure you want to remove and cancel "${item.service_name}"?`)) {
             if (item.id) {
                 item.is_removed = true;
-                // Add to cancelled draft for immediate visual tracking
                 cancelledDraft.unshift({
                     id: item.id,
                     service_name: item.service_name,
@@ -1326,7 +1498,6 @@
                     cancelled_at: 'Just now'
                 });
             } else {
-                // Newly added service, simply discard
                 servicesDraft.splice(idx, 1);
             }
 
@@ -1336,68 +1507,7 @@
         }
     });
 
-    // 8. Add New Payment Row
-    $('#btnAddNewPaymentRow').on('click', function() {
-        const amt = parseFloat($('#newPaymentAmount').val()) || 0;
-        const mode = $('#newPaymentMode').val();
-        const txnId = $('#newPaymentTxnId').val().trim();
-
-        if (amt <= 0) {
-            alert('Please enter a valid payment amount greater than zero.');
-            $('#newPaymentAmount').focus();
-            return;
-        }
-
-        paymentsDraft.push({
-            id: null, // brand new payment
-            amount: amt,
-            payment_mode: mode,
-            transaction_id: txnId,
-            date: 'Today',
-            is_deleted: false
-        });
-
-        $('#newPaymentAmount').val('');
-        $('#newPaymentTxnId').val('');
-
-        renderPaymentsTable();
-        calculateFinancials();
-    });
-
-    // Fill Balance Due button
-    $('#btnFillDueAmount').on('click', function() {
-        let gross = 0.0;
-        servicesDraft.forEach(it => {
-            if (!it.is_removed) gross += Math.max(0, (it.charges * it.qty) - it.discount);
-        });
-        const billDiscount = parseFloat($('#editBillDiscount').val()) || 0.0;
-        const net = Math.max(0, gross - billDiscount);
-        let totalPaid = 0.0;
-        paymentsDraft.forEach(p => {
-            if (!p.is_deleted) totalPaid += p.amount;
-        });
-        const due = Math.max(0, Math.round((net - totalPaid) * 100) / 100);
-        $('#newPaymentAmount').val(due.toFixed(2));
-    });
-
-    // Inline Payment Edits
-    $(document).on('input', '.input-payment-amount', function() {
-        const idx = $(this).data('idx');
-        paymentsDraft[idx].amount = parseFloat($(this).val()) || 0;
-        calculateFinancials();
-    });
-
-    $(document).on('change', '.select-payment-mode', function() {
-        const idx = $(this).data('idx');
-        paymentsDraft[idx].payment_mode = $(this).val();
-    });
-
-    $(document).on('input', '.input-payment-txnid', function() {
-        const idx = $(this).data('idx');
-        paymentsDraft[idx].transaction_id = $(this).val().trim();
-    });
-
-    // Void / Remove Payment
+    // 8. Void Prior Payment
     $(document).on('click', '.btn-void-payment', function() {
         const idx = $(this).data('idx');
         const p = paymentsDraft[idx];
@@ -1414,27 +1524,86 @@
         }
     });
 
-    // Overall Bill Discount Input
-    $('#editBillDiscount').on('input', function() {
+    // 9. Discount Synchronizations
+    $('#edit_discount_percent').on('input', function() {
+        let gross = 0.0;
+        servicesDraft.forEach(it => {
+            if (!it.is_removed) gross += Math.max(0, (it.charges * it.qty) - it.discount);
+        });
+        const percent = Math.min(100, Math.max(0, parseFloat($(this).val()) || 0));
+        const disc = (gross * percent) / 100;
+        $('#editBillDiscount').val(disc.toFixed(2));
         calculateFinancials();
     });
 
-    // 9. Save Full Bill Changes
-    $('#btnSaveFullBill').on('click', function() {
+    $('#editBillDiscount').on('input', function() {
+        let gross = 0.0;
+        servicesDraft.forEach(it => {
+            if (!it.is_removed) gross += Math.max(0, (it.charges * it.qty) - it.discount);
+        });
+        const disc = Math.max(0, parseFloat($(this).val()) || 0);
+        const percent = gross > 0 ? (disc / gross) * 100 : 0;
+        $('#edit_discount_percent').val(percent > 0 ? percent.toFixed(1) : '');
+        calculateFinancials();
+    });
+
+    $('.edit-payment-field').on('input', function() {
+        calculateFinancials();
+    });
+
+    // 10. Save Full Bill Changes (Both Panel button & Footer button)
+    function handleSaveFullBill(btn) {
         if (!activeModalBillId) return;
 
-        const btn = $(this);
         btn.prop('disabled', true).html('<i class="uil uil-spinner uil-spin me-1"></i> Saving Bill...');
+
+        // Append any new tenders entered
+        const finalPayments = paymentsDraft.slice();
+        const newCash = parseFloat($('#edit_payment_cash').val()) || 0;
+        const newUpi = parseFloat($('#edit_payment_upi').val()) || 0;
+        const newCard = parseFloat($('#edit_payment_card').val()) || 0;
+        const txUpi = $('#edit_tx_upi').val().trim();
+        const txCard = $('#edit_tx_card').val().trim();
+
+        if (newCash > 0) {
+            finalPayments.push({
+                id: null,
+                amount: newCash,
+                payment_mode: 'cash',
+                transaction_id: '',
+                is_deleted: false
+            });
+        }
+        if (newUpi > 0) {
+            finalPayments.push({
+                id: null,
+                amount: newUpi,
+                payment_mode: 'upi',
+                transaction_id: txUpi,
+                is_deleted: false
+            });
+        }
+        if (newCard > 0) {
+            finalPayments.push({
+                id: null,
+                amount: newCard,
+                payment_mode: 'card',
+                transaction_id: txCard,
+                is_deleted: false
+            });
+        }
 
         const payload = {
             referral_doctor: $('#editReferralDoctor').val(),
             bill_discount: parseFloat($('#editBillDiscount').val()) || 0,
             services: servicesDraft,
-            payments: paymentsDraft
+            payments: finalPayments
         };
 
+        const saveUrl = billSaveFullUrlTemplate.replace('__BILL_ID__', activeModalBillId);
+
         $.ajax({
-            url: `/lab/billing/${activeModalBillId}/save-full`,
+            url: saveUrl,
             type: 'POST',
             data: JSON.stringify(payload),
             contentType: 'application/json',
@@ -1443,14 +1612,17 @@
             },
             success: function(res) {
                 if (res.success) {
+                    const modalEl = document.getElementById('editBillModal');
+                    const modalInst = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInst) {
+                        modalInst.hide();
+                    }
                     if (window.lisToast) {
                         window.lisToast(res.message, 'success');
-                    } else {
-                        alert(res.message);
                     }
                     setTimeout(function() {
-                        location.reload();
-                    }, 500);
+                        window.location.reload();
+                    }, 400);
                 }
             },
             error: function(xhr) {
@@ -1459,6 +1631,10 @@
                 btn.prop('disabled', false).html('<i class="uil uil-check-circle me-1"></i> Save Bill Changes');
             }
         });
+    }
+
+    $('#btnSaveFullBill, #btnSaveFullBillPanel').on('click', function() {
+        handleSaveFullBill($(this));
     });
 
     // 10. Modal Print Buttons

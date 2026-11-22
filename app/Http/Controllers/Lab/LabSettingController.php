@@ -21,9 +21,12 @@ class LabSettingController extends Controller
     public function index(): View
     {
         $setting = LabSetting::current();
+        $accessionGen = app(\App\Domain\Lab\Services\AccessionGenerator::class);
+        $nextSampleBarcode = $accessionGen->previewNextBarcode();
 
         return view('lab.settings.index', [
             'setting' => $setting,
+            'nextSampleBarcode' => $nextSampleBarcode,
         ]);
     }
 
@@ -62,6 +65,14 @@ class LabSettingController extends Controller
             'print_top_margin' => ['nullable', 'integer', 'min:0', 'max:150'],
             'print_bottom_margin' => ['nullable', 'integer', 'min:0', 'max:150'],
             'print_with_header' => ['nullable', 'boolean'],
+            'combine_reports_on_print' => ['nullable', 'boolean'],
+
+            'sample_no_prefix' => ['nullable', 'string', 'max:20'],
+            'sample_no' => ['nullable', 'integer', 'min:1'],
+            'sample_no_digits' => ['nullable', 'integer', 'min:0', 'max:12'],
+            'sample_no_format' => ['nullable', 'string', 'in:prefix_padded,prefix_unpadded,numeric_only'],
+            'sample_no_reset_period' => ['nullable', 'string', 'in:continuous,daily'],
+            'start_series_number' => ['nullable', 'integer', 'min:1'],
 
             'report_disclaimer' => ['nullable', 'string', 'max:1000'],
             'receipt_footer_note' => ['nullable', 'string', 'max:1000'],
@@ -103,15 +114,75 @@ class LabSettingController extends Controller
         // 2. Normalize Booleans
         $validated['show_barcode'] = $request->boolean('show_barcode', true);
         $validated['show_qr_code'] = $request->boolean('show_qr_code', true);
-        $validated['use_letterhead_image'] = $request->boolean('use_letterhead_image', false);
-        $validated['print_with_header'] = $request->boolean('print_with_header', false);
+        $validated['combine_reports_on_print'] = $request->boolean('combine_reports_on_print', false);
+        if ($request->hasFile('header_image') || $request->hasFile('footer_image')) {
+            $validated['use_letterhead_image'] = true;
+            $validated['print_with_header'] = true;
+        } else {
+            $validated['use_letterhead_image'] = $request->boolean('use_letterhead_image', false);
+            $validated['print_with_header'] = $request->boolean('print_with_header', false);
+        }
 
-        // Remove uploaded file objects from validated array before filling model
-        unset($validated['logo'], $validated['header_image'], $validated['footer_image'], $validated['technician_signature'], $validated['pathologist_signature']);
+        // Handle One-Time Sample Series Setup: locked once configured
+        if ($setting->is_sample_series_locked) {
+            unset($validated['sample_no_prefix'], $validated['sample_no'], $validated['start_series_number']);
+        } else {
+            $startingSampleNo = $request->input('sample_no') ?? $request->input('start_series_number');
+            if ($startingSampleNo !== null && $startingSampleNo !== '') {
+                $rawStr = trim((string) $startingSampleNo);
+                $startNum = (int) $rawStr;
+                $prefix = $request->filled('sample_no_prefix') ? trim((string) $request->input('sample_no_prefix')) : null;
+
+                $hasLeadingZero = str_starts_with($rawStr, '0') && strlen($rawStr) > strlen((string) $startNum);
+                $digits = $hasLeadingZero ? strlen($rawStr) : 0;
+                $format = $hasLeadingZero ? 'prefix_padded' : 'prefix_unpadded';
+
+                $validated['sample_no_prefix'] = $prefix;
+                $validated['starting_sample_no'] = $startNum;
+                $validated['sample_no_digits'] = $digits;
+                $validated['sample_no_format'] = $format;
+                $validated['is_sample_series_locked'] = true;
+
+                $accessionGen = app(\App\Domain\Lab\Services\AccessionGenerator::class);
+                $accessionGen->setNextSampleNumber($startNum, $prefix);
+
+                // Sync pending uncollected orders to start from configured series
+                $uncollected = \App\Domain\Lab\Models\LabOrder::where('status', \App\Domain\Lab\States\LabState::ORDERED->value)
+                    ->with('specimens')
+                    ->get();
+                $cur = $startNum;
+                $tempSetting = clone $setting;
+                $tempSetting->sample_no_prefix = $prefix;
+                $tempSetting->sample_no_digits = $digits;
+                $tempSetting->sample_no_format = $format;
+
+                foreach ($uncollected as $unOrder) {
+                    foreach ($unOrder->specimens as $sp) {
+                        $sp->barcode = $accessionGen->formatBarcode($cur, $tempSetting);
+                        $sp->save();
+                        $cur++;
+                    }
+                }
+                if ($cur > $startNum) {
+                    $accessionGen->setNextSampleNumber($cur, $prefix);
+                }
+            }
+        }
+
+        // Remove non-table fields from database fields array
+        unset(
+            $validated['logo'],
+            $validated['header_image'],
+            $validated['footer_image'],
+            $validated['technician_signature'],
+            $validated['pathologist_signature'],
+            $validated['sample_no'],
+            $validated['start_series_number']
+        );
 
         $setting->update($validated);
 
-        // 3. Legacy Dual-Write: synchronize hospital_print_settings
+        // Sync legacy table hospital_print_settings
         try {
             $printSetting = HospitalPrintSetting::first();
             if ($printSetting) {
@@ -164,9 +235,12 @@ class LabSettingController extends Controller
             'print_top_margin' => ['required', 'integer', 'min:0', 'max:150'],
             'print_bottom_margin' => ['required', 'integer', 'min:0', 'max:150'],
             'print_with_header' => ['nullable', 'boolean'],
+            'combine_reports_on_print' => ['nullable', 'boolean'],
             'use_letterhead_image' => ['nullable', 'boolean'],
             'header_height' => ['nullable', 'integer', 'min:30', 'max:300'],
             'header_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
+            'footer_height' => ['nullable', 'integer', 'min:20', 'max:200'],
+            'footer_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]);
 
         $setting = LabSetting::current();
@@ -185,12 +259,29 @@ class LabSettingController extends Controller
             $validated['use_letterhead_image'] = true;
         }
 
-        $validated['print_with_header'] = $request->boolean('print_with_header', false);
-        if ($request->has('use_letterhead_image')) {
-            $validated['use_letterhead_image'] = $request->boolean('use_letterhead_image');
+        if ($request->hasFile('footer_image') && $request->file('footer_image')->isValid()) {
+            $file = $request->file('footer_image');
+            $ext = $file->getClientOriginalExtension() ?: 'png';
+            $filename = "footer_image_" . time() . '_' . substr(md5(uniqid()), 0, 6) . ".{$ext}";
+            $file->move($uploadDir, $filename);
+            $validated['footer_image_path'] = "assets/files/lab/{$filename}";
         }
 
-        unset($validated['header_image']);
+        if ($request->hasFile('header_image') || $request->hasFile('footer_image')) {
+            $validated['use_letterhead_image'] = true;
+            $validated['print_with_header'] = true;
+        } else {
+            $validated['print_with_header'] = $request->boolean('print_with_header', false);
+            if ($request->has('use_letterhead_image')) {
+                $validated['use_letterhead_image'] = $request->boolean('use_letterhead_image');
+            }
+        }
+
+        if ($request->has('combine_reports_on_print')) {
+            $validated['combine_reports_on_print'] = $request->boolean('combine_reports_on_print');
+        }
+
+        unset($validated['header_image'], $validated['footer_image']);
 
         $setting->update($validated);
 
@@ -207,6 +298,12 @@ class LabSettingController extends Controller
                 if ($setting->header_height) {
                     $existing['header_image_size'] = (string) $setting->header_height;
                 }
+                if ($setting->footer_image_path) {
+                    $existing['footer_image'] = $setting->footer_image_path;
+                }
+                if ($setting->footer_height) {
+                    $existing['footer_image_size'] = (string) $setting->footer_height;
+                }
                 $printSetting->lab_investigation = json_encode($existing);
                 $printSetting->save();
             }
@@ -216,9 +313,77 @@ class LabSettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Print margin and header settings saved successfully!',
+            'message' => 'Print margin and header/footer settings saved successfully!',
             'setting' => $setting,
             'header_image_url' => $setting->header_image_path ? asset($setting->header_image_path) : null,
+            'footer_image_url' => $setting->footer_image_path ? asset($setting->footer_image_path) : null,
+        ]);
+    }
+
+    /**
+     * One-time lock and initialization of sample number series from Settings.
+     */
+    public function lockSampleSeries(Request $request): JsonResponse
+    {
+        $setting = LabSetting::current();
+        if ($setting->is_sample_series_locked) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sample number series is already configured and locked.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'sample_no' => ['required'],
+            'sample_no_prefix' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $prefix = isset($validated['sample_no_prefix']) && trim((string) $validated['sample_no_prefix']) !== ''
+            ? trim((string) $validated['sample_no_prefix'])
+            : null;
+
+        $rawStr = trim((string) $validated['sample_no']);
+        $startingNo = (int) $rawStr;
+
+        $hasLeadingZero = str_starts_with($rawStr, '0') && strlen($rawStr) > strlen((string) $startingNo);
+        $digits = $hasLeadingZero ? strlen($rawStr) : 0;
+        $format = $hasLeadingZero ? 'prefix_padded' : 'prefix_unpadded';
+
+        $setting->sample_no_prefix = $prefix;
+        $setting->starting_sample_no = $startingNo;
+        $setting->sample_no_digits = $digits;
+        $setting->sample_no_format = $format;
+        $setting->is_sample_series_locked = true;
+        $setting->save();
+
+        $accessionGen = app(\App\Domain\Lab\Services\AccessionGenerator::class);
+        $accessionGen->setNextSampleNumber($startingNo, $prefix);
+
+        // Sync pending uncollected orders so they immediately show the configured sample series
+        $uncollected = \App\Domain\Lab\Models\LabOrder::where('status', \App\Domain\Lab\States\LabState::ORDERED->value)
+            ->with('specimens')
+            ->get();
+        $cur = $startingNo;
+        foreach ($uncollected as $unOrder) {
+            foreach ($unOrder->specimens as $sp) {
+                $sp->barcode = $accessionGen->formatBarcode($cur, $setting);
+                $sp->save();
+                $cur++;
+            }
+        }
+        if ($cur > $startingNo) {
+            $accessionGen->setNextSampleNumber($cur, $prefix);
+        }
+
+        $nextPreview = $accessionGen->previewNextBarcode();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sample number series locked! Starting from {$startingNo}. Next sample will be {$nextPreview}.",
+            'next_sample_no' => $nextPreview,
+            'is_locked' => true,
+            'starting_sample_no' => $startingNo,
+            'sample_no_prefix' => $prefix,
         ]);
     }
 }

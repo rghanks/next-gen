@@ -7,17 +7,41 @@ namespace App\Services\Licensing;
 class HardwareFingerprint
 {
     /**
+     * In-memory cache for the machine ID during the current request.
+     */
+    protected static ?string $cachedMachineId = null;
+
+    /**
      * Get the formatted unique Machine ID for the current system.
      * Output format: ABCD-1234-EF56-7890
      */
-    public static function getMachineId(): string
+    public static function getMachineId(bool $fresh = false): string
     {
+        if (!$fresh && self::$cachedMachineId !== null) {
+            return self::$cachedMachineId;
+        }
+
+        $cacheFile = storage_path('license/.machine_id');
+
+        if (!$fresh && file_exists($cacheFile)) {
+            $cached = trim((string) @file_get_contents($cacheFile));
+            if (preg_match('/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $cached)) {
+                self::$cachedMachineId = $cached;
+                return $cached;
+            }
+        }
+
         $rawIdentifiers = self::collectIdentifiers();
         $hash = hash('sha256', implode('|', $rawIdentifiers));
 
         // Format into 4 chunks of 4 characters (16 chars total)
         $short = strtoupper(substr($hash, 0, 16));
-        return implode('-', str_split($short, 4));
+        $machineId = implode('-', str_split($short, 4));
+
+        @file_put_contents($cacheFile, $machineId);
+        self::$cachedMachineId = $machineId;
+
+        return $machineId;
     }
 
     /**

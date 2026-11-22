@@ -384,7 +384,7 @@ test('9b. lab report renders single report per page with page break for subseque
     $report = app(ReleaseReport::class)->execute($order->id, 1);
 
     $renderer = app(\App\Domain\Lab\Services\ReportRenderer::class);
-    $html = $renderer->renderHtml($order, $report, true, false);
+    $html = $renderer->renderHtml($order, $report, true, false, null, null, null, false);
 
     // Verify each report has its own report-page container and a page-break divider in between
     expect($html)->toContain('class="report-page"');
@@ -480,6 +480,20 @@ test('12. billing receipt and barcode label render cleanly without lazy loading 
 });
 
 test('14. order 1 pdf generation and html preview', function () {
+    LabOrder::find(1)?->update(['status' => \App\Domain\Lab\States\LabState::RELEASED]);
+
+    // Ensure standard computerized letterhead state for test baseline
+    $setting = \App\Models\LabSetting::current();
+    $setting->update([
+        'use_letterhead_image' => false,
+        'footer_image_path' => null,
+    ]);
+
+    $order = \App\Domain\Lab\Models\LabOrder::find(1);
+    if ($order && $order->status !== \App\Domain\Lab\States\LabState::RELEASED) {
+        $order->update(['status' => \App\Domain\Lab\States\LabState::RELEASED]);
+    }
+
     $pdfResponse = $this->get('/lab/reports/1/pdf');
     $pdfResponse->assertOk();
     expect($pdfResponse->headers->get('content-type'))->toBe('application/pdf');
@@ -488,6 +502,24 @@ test('14. order 1 pdf generation and html preview', function () {
     $htmlResponse = $this->get('/lab/reports/1/view');
     $htmlResponse->assertOk();
     $htmlResponse->assertSee('CENTRAL HOSPITAL LABORATORY');
+    $htmlResponse->assertSee('report-footer-computerized');
+    $htmlResponse->assertSee('Electronically Authenticated Diagnostic Report');
+
+    // Test with graphic footer banner image
+    $setting = \App\Models\LabSetting::current();
+    $setting->update([
+        'footer_image_path' => 'assets/files/signatures/sign_anita.png',
+        'use_letterhead_image' => true,
+    ]);
+
+    $graphicHtmlResponse = $this->get('/lab/reports/1/view');
+    $graphicHtmlResponse->assertOk();
+    $graphicHtmlResponse->assertSee('report-footer-graphic');
+
+    $setting->update([
+        'footer_image_path' => null,
+        'use_letterhead_image' => false,
+    ]);
 });
 
 test('15. group test component expansion in result entry and dual-write save', function () {
@@ -757,7 +789,26 @@ test('17. edit bill allows adding service, removing service with cancellation an
     expect((float) $pb->discount)->toBe(20.00);
     expect((bool) $pb->is_settled)->toBeTrue();
 
-    // 7. Verify single item remove endpoint
+    // 7. Verify updating service name and service on existing item directly
+    $updateResp = $this->postJson(route('lab.billing.save-full', $billId), [
+        'services' => [
+            [
+                'id' => $genBillB->id,
+                'service_id' => $this->serviceA->id,
+                'service_name' => 'Complete Blood Count (Updated)',
+                'charges' => 400.00,
+                'qty' => 1,
+                'discount' => 0,
+                'is_removed' => false,
+            ],
+        ],
+    ]);
+    $updateResp->assertOk();
+    $genBillBUpdated = PatientGenBill::find($genBillB->id);
+    expect($genBillBUpdated->service_id)->toBe($this->serviceA->id);
+    expect((float) $genBillBUpdated->charges)->toBe(400.00);
+
+    // 8. Verify single item remove endpoint
     $removeResp = $this->postJson(route('lab.billing.remove-item', ['bill' => $billId, 'item' => $genBillB->id]));
     $removeResp->assertOk();
     $removeResp->assertJson(['success' => true]);
@@ -816,6 +867,7 @@ test('18. lab settings desk allows configuring lab name, gst, address, signature
     // 4. Verify report HTML reflects the newly saved lab name and doctor
     $order = LabOrder::first();
     if ($order) {
+        $order->update(['status' => \App\Domain\Lab\States\LabState::RELEASED]);
         $reportViewResp = $this->get(route('lab.reports.view', $order->id));
         $reportViewResp->assertOk();
         $reportViewResp->assertSee('METRO DIAGNOSTIC &amp; PATHOLOGY LAB', false);
@@ -858,7 +910,7 @@ test('19. walkin registration generates sequential uhid and compact specimen bar
 
     $specimen1 = $order1->specimens->first();
     expect($specimen1)->not->toBeNull();
-    expect($specimen1->barcode)->toMatch('/^SMP-\d{6}$/');
+    expect($specimen1->barcode)->toMatch('/^SMP-\d+$/');
 
     // Create walkin patient 2 immediately after
     $order2 = $createAction->execute([
@@ -884,5 +936,5 @@ test('19. walkin registration generates sequential uhid and compact specimen bar
 
     $specimen2 = $order2->specimens->first();
     expect($specimen2)->not->toBeNull();
-    expect($specimen2->barcode)->toMatch('/^SMP-\d{6}$/');
+    expect($specimen2->barcode)->toMatch('/^SMP-\d+$/');
 });

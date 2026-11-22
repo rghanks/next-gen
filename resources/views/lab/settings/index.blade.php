@@ -141,6 +141,11 @@
                     <i class="uil uil-print me-1"></i> Report & Receipt Preferences
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sample-tab" data-bs-toggle="tab" data-bs-target="#tabSampleSeries" type="button" role="tab">
+                    <i class="uil uil-tag-alt me-1"></i> Sample Number Series
+                </button>
+            </li>
         </ul>
 
         <div class="tab-content" id="settingsTabContent">
@@ -439,6 +444,20 @@
                             </div>
                         </div>
 
+                        <div class="col-md-6">
+                            <div class="card p-3 border bg-light h-100">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="combine_reports_on_print" id="checkCombineReports" value="1" {{ $setting->combine_reports_on_print ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold text-dark" for="checkCombineReports" style="font-size: 12.5px;">
+                                        <i class="uil uil-layers me-1 text-primary"></i> Combine Multiple Reports on Single Page
+                                    </label>
+                                </div>
+                                <div class="text-muted" style="font-size: 11px; line-height: 1.4;">
+                                    When enabled, if 2 or more tests are billed for the patient and page space permits, they will print continuously on <strong>one page</strong> with a unified header. When disabled, each test is printed on a separate page.
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-12">
                             <label class="field-label">Report Bottom Medico-Legal Disclaimer</label>
                             <textarea name="report_disclaimer" rows="2" class="form-control form-control-sm" placeholder="Disclaimer displayed at the end of every lab report...">{{ old('report_disclaimer', $setting->report_disclaimer) }}</textarea>
@@ -449,6 +468,113 @@
                             <label class="field-label">Receipt Footer Note</label>
                             <textarea name="receipt_footer_note" rows="2" class="form-control form-control-sm" placeholder="Note displayed on OPD payment receipts...">{{ old('receipt_footer_note', $setting->receipt_footer_note) }}</textarea>
                             <small class="text-muted" style="font-size: 10px;">Printed at the bottom of OPD billing payment receipts.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- TAB 5: SAMPLE NUMBER SERIES & BARCODE CONFIGURATION        -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div class="tab-pane fade" id="tabSampleSeries" role="tabpanel">
+                <div class="settings-section-card">
+                    <div class="settings-section-title d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="uil uil-tag-alt text-primary fs-5"></i>
+                            <span class="fs-6 fw-bold">Sample Number Setup</span>
+                        </div>
+                        <div id="sample_lock_status_badge">
+                            @if($setting->is_sample_series_locked)
+                                <span class="badge bg-success-subtle text-success border border-success px-3 py-1 fw-bold" style="font-size: 11.5px;">
+                                    <i class="uil uil-lock me-1"></i> Configured & Locked (One-Time Setup Completed)
+                                </span>
+                            @else
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-1 fw-bold" style="font-size: 11.5px;">
+                                    <i class="uil uil-edit me-1"></i> Pending Setup (One-Time Entry)
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div id="sample_series_alert_box">
+                        @if($setting->is_sample_series_locked)
+                            <div class="alert alert-success border-success-subtle d-flex align-items-center justify-content-between py-2 px-3 mb-3" style="font-size: 12px; background-color: #f0fdf4;">
+                                <div>
+                                    <i class="uil uil-shield-check text-success fs-5 me-1"></i>
+                                    <strong>Sample Series Initialized & Locked:</strong> Series started from <strong>#{{ $setting->starting_sample_no }}</strong> with prefix <strong>{{ $setting->sample_no_prefix ?: '(No Prefix)' }}</strong>.
+                                    This configuration is permanently readonly to maintain chronological audit integrity.
+                                </div>
+                                <div class="text-end ps-3">
+                                    <span class="badge bg-success fs-6 px-3 py-1 font-monospace shadow-sm" id="sample-active-badge">Next: {{ $nextSampleBarcode }}</span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-info border-info-subtle py-2 px-3 mb-3" style="font-size: 12px;">
+                                <i class="uil uil-info-circle text-info fs-5 me-1"></i>
+                                <strong>One-Time Setup:</strong> Enter your optional Sample Prefix and starting Sample Number below. Once saved, this sequence is permanently locked as readonly, and subsequent orders will automatically count up from this starting sample number.
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- 1. Sample Prefix (Optional) -->
+                        <div class="col-md-6 col-12">
+                            <label class="field-label fw-bold mb-1" style="font-size: 12px;">
+                                1. Sample Prefix <span class="text-muted fw-normal">(Optional)</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="uil uil-tag"></i></span>
+                                <input type="text"
+                                       id="setting_sample_no_prefix"
+                                       name="sample_no_prefix"
+                                       value="{{ old('sample_no_prefix', $setting->sample_no_prefix) }}"
+                                       class="form-control {{ $setting->is_sample_series_locked ? 'bg-light text-muted fw-bold' : '' }}"
+                                       placeholder="e.g. SMP or leave blank for numeric only"
+                                       {{ $setting->is_sample_series_locked ? 'readonly disabled' : '' }}
+                                       style="height: 38px; font-size: 13px;">
+                            </div>
+                            <small class="text-muted" style="font-size: 10.5px;">Optional prefix before the sample number (e.g. <code>SMP</code> produces <code>SMP-101</code>; leaving blank produces plain <code>101</code>).</small>
+                        </div>
+
+                        <!-- 2. Sample No. (Starting Sequence Number) -->
+                        <div class="col-md-6 col-12">
+                            <label class="field-label fw-bold mb-1" style="font-size: 12px;">
+                                2. Sample Number <span class="text-danger">*</span> <span class="text-muted fw-normal">(Starting Sample No.)</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="uil uil-sort-numeric-up"></i></span>
+                                <input type="number"
+                                       id="setting_sample_no"
+                                       name="sample_no"
+                                       min="1"
+                                       value="{{ old('sample_no', $setting->starting_sample_no) }}"
+                                       class="form-control {{ $setting->is_sample_series_locked ? 'bg-light text-muted fw-bold' : '' }}"
+                                       placeholder="e.g. 101, 500, 1001"
+                                       {{ $setting->is_sample_series_locked ? 'readonly disabled' : 'required' }}
+                                       style="height: 38px; font-size: 13px;">
+                            </div>
+                            <small class="text-muted" style="font-size: 10.5px;">The system starts the sequence from this sample number and increments for every new order.</small>
+                        </div>
+
+                        <!-- Live Preview Display -->
+                        <div class="col-12">
+                            <div class="p-3 rounded-2 border bg-light d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="fw-bold text-dark" style="font-size: 12px;">Next Sample Number in Sequence:</span>
+                                    <div class="text-muted" style="font-size: 11px;">Preview of the sample number that will be assigned to the next order.</div>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary px-3 py-2 fs-6 font-monospace shadow-sm" id="sample-preview-badge">
+                                        {{ $nextSampleBarcode ?? '101' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-end" id="sample_lock_action_container" style="{{ $setting->is_sample_series_locked ? 'display: none;' : '' }}">
+                            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-2 shadow-sm" id="btn-lock-sample-series">
+                                <i class="uil uil-lock-alt me-1"></i> Save & Lock Sample Series
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -482,5 +608,88 @@ function previewImage(input, previewSelector, noTextSelector) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+$(document).ready(function() {
+    function updateSamplePreview() {
+        const prefix = ($('#setting_sample_no_prefix').val() || '').trim().replace(/-+$/, '');
+        let num = parseInt($('#setting_sample_no').val());
+        if (isNaN(num) || num <= 0) {
+            const curText = $('#sample-preview-badge').text().trim();
+            const m = curText.match(/(\d+)$/);
+            num = m ? parseInt(m[1]) : 101;
+        }
+
+        const formatted = prefix ? (prefix + '-' + num) : String(num);
+        $('#sample-preview-badge').text(formatted);
+    }
+
+    $('#setting_sample_no_prefix, #setting_sample_no').on('input change', updateSamplePreview);
+
+    // One-Time Lock Sample Series AJAX Button
+    $('#btn-lock-sample-series').on('click', function() {
+        const sampleNo = parseInt($('#setting_sample_no').val());
+        const prefix = ($('#setting_sample_no_prefix').val() || '').trim();
+
+        if (!sampleNo || sampleNo <= 0) {
+            alert('Please enter a valid starting Sample Number (greater than 0).');
+            $('#setting_sample_no').focus();
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to lock the sample series starting from #${sampleNo}${prefix ? ' with prefix ' + prefix : ''}? Once locked, this cannot be changed.`)) {
+            return;
+        }
+
+        const btn = $(this).prop('disabled', true).html('<i class="uil uil-spinner-alt"></i> Locking...');
+        $.ajax({
+            url: "{{ route('lab.settings.lock-sample-series') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                _token: $('input[name="_token"]').val(),
+                sample_no: sampleNo,
+                sample_no_prefix: prefix
+            }),
+            success: function(res) {
+                btn.remove();
+                $('#sample_lock_action_container').hide();
+                $('#setting_sample_no_prefix, #setting_sample_no')
+                    .prop('readonly', true)
+                    .prop('disabled', true)
+                    .addClass('bg-light text-muted fw-bold');
+
+                $('#sample_lock_status_badge').html(`
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1 fw-bold" style="font-size: 11.5px;">
+                        <i class="uil uil-lock me-1"></i> Configured & Locked (One-Time Setup Completed)
+                    </span>
+                `);
+
+                $('#sample_series_alert_box').html(`
+                    <div class="alert alert-success border-success-subtle d-flex align-items-center justify-content-between py-2 px-3 mb-3" style="font-size: 12px; background-color: #f0fdf4;">
+                        <div>
+                            <i class="uil uil-shield-check text-success fs-5 me-1"></i>
+                            <strong>Sample Series Initialized & Locked:</strong> Series started from <strong>#${res.starting_sample_no}</strong> with prefix <strong>${res.sample_no_prefix || '(No Prefix)'}</strong>.
+                            This configuration is permanently readonly to maintain chronological audit integrity.
+                        </div>
+                        <div class="text-end ps-3">
+                            <span class="badge bg-success fs-6 px-3 py-1 font-monospace shadow-sm">Next: ${res.next_sample_no}</span>
+                        </div>
+                    </div>
+                `);
+
+                if (res.next_sample_no) {
+                    $('#sample-preview-badge').text(res.next_sample_no);
+                }
+
+                alert(res.message);
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="uil uil-lock-alt me-1"></i> Save & Lock Sample Series');
+                const err = xhr.responseJSON?.message || 'Failed to lock sample series.';
+                alert(err);
+            }
+        });
+    });
+});
 </script>
 @endpush

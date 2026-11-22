@@ -9,6 +9,7 @@ use App\Domain\Lab\Actions\CreateLabBill;
 use App\Domain\Lab\Models\LabOrder;
 use App\Domain\Lab\Models\LabOrderItem;
 use App\Domain\Lab\States\LabState;
+use App\Domain\Lab\Services\AccessionGenerator;
 use App\Domain\Lab\Services\PriceResolver;
 use App\Domain\Lab\Services\ReportRenderer;
 use App\Http\Controllers\Controller;
@@ -35,7 +36,8 @@ class BillingController extends Controller
         protected CreateLabBill $createLabBill,
         protected CancelLabBill $cancelLabBill,
         protected PriceResolver $priceResolver,
-        protected ReportRenderer $reportRenderer
+        protected ReportRenderer $reportRenderer,
+        protected AccessionGenerator $accessionGenerator
     ) {}
 
     /**
@@ -48,16 +50,18 @@ class BillingController extends Controller
         ];
 
         // Fetch initial list of laboratory services (popular & common tests prioritized)
-        $popularIds = [223, 112, 113, 114, 115, 118, 123, 124, 126, 128, 129, 144, 157, 1474, 19, 57, 168];
-        $popularOrder = implode(',', $popularIds);
+        // $popularIds = [];
+        $popularOrder; //= implode(',', $popularIds);
 
         $services = HospitalService::query()
-            ->whereIn('flag', ['test', 'lab_package'])
+            ->whereIn('flag', ['test'])
             ->where('active', 1)
-            ->orderByRaw("CASE WHEN id IN ({$popularOrder}) THEN 0 ELSE 1 END")
+           // ->orderByRaw("CASE WHEN id IN ({$popularOrder}) THEN 0 ELSE 1 END")
             ->orderBy('service')
             ->limit(100)
             ->get();
+
+        $priceMap = $this->priceResolver->resolveBatch($services, 'general');
 
         $initialServices = [];
         foreach ($services as $srv) {
@@ -70,7 +74,7 @@ class BillingController extends Controller
                 'name' => $srv->service,
                 'short_code' => $srv->short_code,
                 'is_group' => (bool) $srv->is_group,
-                'price' => $this->priceResolver->resolve($srv->id, 'general'),
+                'price' => $priceMap[$srv->id] ?? 0.00,
                 'is_outsource' => $isOutsource,
             ];
         }
@@ -79,7 +83,10 @@ class BillingController extends Controller
         $preloadedPatient = null;
 
         $referrals = ReferringDoctor::where('is_active', true)->orderBy('name')->get();
-        $todayVisitsCount = DB::table('patient_billing')->whereDate('created_at', Carbon::today())->count();
+        $todayVisitsCount = DB::table('patient_billing')
+            ->whereBetween('created_at', [Carbon::today()->startOfDay(), Carbon::today()->endOfDay()])
+            ->count();
+        $nextSampleBarcode = $this->accessionGenerator->previewNextBarcode();
 
         return view('lab.billing.index', [
             'doctors' => $doctors,
@@ -87,6 +94,7 @@ class BillingController extends Controller
             'todayVisitsCount' => $todayVisitsCount,
             'initialServices' => $initialServices,
             'preloadedPatient' => $preloadedPatient,
+            'nextSampleBarcode' => $nextSampleBarcode,
         ]);
     }
 
@@ -126,7 +134,7 @@ class BillingController extends Controller
             return [
                 'id' => $p->id,
                 'uhid' => $p->uhid ?: $p->id,
-                'name' => trim(($p->prefix ? $p->prefix . ' ' : '') . $p->Fname . ' ' . ($p->Lname ?? '')),
+                'name' => trim(($p->Fname ?? '') . ' ' . ($p->Lname ?? '')),
                 'age' => $formattedAge,
                 'sex' => $p->sex ?: 'Male',
                 'mobile_no' => $p->mobile_no,
@@ -194,10 +202,12 @@ class BillingController extends Controller
             ->leftJoin('visitlog as v', 'pb.visit_id', '=', 'v.id')
             ->leftJoin('pi as p', 'v.patient_id', '=', 'p.id')
             ->leftJoin('lab_orders as lo', 'lo.bill_id', '=', 'pb.id')
+            ->leftJoin('specimens as sp', 'sp.lab_order_id', '=', 'lo.id')
             ->select(
                 'pb.id as bill_id',
                 'lo.id as order_id',
                 'lo.accession_no',
+                'sp.barcode as sample_no',
                 'pb.bill_number',
                 'pb.created_at',
                 'pb.discount',
@@ -273,6 +283,7 @@ class BillingController extends Controller
                 'bill_id' => $b->bill_id,
                 'order_id' => $b->order_id,
                 'accession_no' => $b->accession_no,
+                'sample_no' => $b->sample_no ?: ($b->accession_no ?? '-'),
                 'bill_number' => $b->bill_number,
                 'receipt_url' => $receiptUrl,
                 'patient_id' => $b->patient_id,
@@ -350,6 +361,19 @@ class BillingController extends Controller
             'order' => new LabOrderResource($order),
             'receipt_url' => route('lab.billing.receipt', $order->id),
             'barcode_url' => route('lab.billing.barcode', $order->id),
+            'sample_no' => $order->specimens->first()?->barcode ?? $order->accession_no,
+            'next_sample_no' => $this->accessionGenerator->previewNextBarcode(),
+        ]);
+    }
+
+    /**
+     * Get preview of the next sample number in series.
+     */
+    public function nextSampleNumber(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'next_sample_no' => $this->accessionGenerator->previewNextBarcode(),
         ]);
     }
 
@@ -567,8 +591,9 @@ class BillingController extends Controller
     /**
      * Get single bill details for the Edit Bill & Settlement modal.
      */
-    public function billDetails(int $billId): JsonResponse
+    public function billDetails(int|string $billId): JsonResponse
     {
+        $billId = (int) $billId;
         $bill = PatientBilling::with([
             'visit.patient',
             'items.service',
@@ -640,13 +665,14 @@ class BillingController extends Controller
                 'is_settled' => (bool) $bill->is_settled,
                 'order_id' => $order?->id,
                 'accession_no' => $order?->accession_no,
+                'sample_no' => $order?->specimens()->first()?->barcode ?? ($order?->accession_no ?? '-'),
                 'receipt_url' => route('lab.billing.receipt', $order?->id ?: $bill->id),
                 'barcode_url' => $order ? route('lab.billing.barcode', $order->id) : null,
             ],
             'patient' => [
                 'id' => $patient?->id,
                 'uhid' => $patient?->uhid ?: ($patient?->id ?: '-'),
-                'name' => ($patient?->prefix ? $patient->prefix . ' ' : '') . ($patient?->full_name ?: trim(($patient?->Fname ?? '') . ' ' . ($patient?->Lname ?? ''))),
+                'name' => $patient?->full_name ?: trim(($patient?->Fname ?? '') . ' ' . ($patient?->Lname ?? '')),
                 'mobile_no' => $patient?->mobile_no ?: '-',
                 'age' => $patient?->age ? ($patient->age . ' Yr / ' . ($patient->sex ?: 'Male')) : '-',
             ],
@@ -669,8 +695,10 @@ class BillingController extends Controller
     /**
      * Remove a single service item: marks test as cancelled and soft-deletes it.
      */
-    public function removeItem(Request $request, int $billId, int $itemId): JsonResponse
+    public function removeItem(Request $request, int|string $billId, int|string $itemId): JsonResponse
     {
+        $billId = (int) $billId;
+        $itemId = (int) $itemId;
         $bill = PatientBilling::findOrFail($billId);
         $userId = $request->user()?->id ?: 1;
         $now = Carbon::now();
@@ -747,8 +775,9 @@ class BillingController extends Controller
      * Save complete bill edits: add services, remove services (mark cancelled + soft delete),
      * edit payments, update referral doctor, discount, and synchronize all ledger tables.
      */
-    public function saveFullBill(Request $request, int $billId): JsonResponse
+    public function saveFullBill(Request $request, int|string $billId): JsonResponse
     {
+        $billId = (int) $billId;
         $bill = PatientBilling::with(['visit.patient', 'items'])->findOrFail($billId);
         $userId = $request->user()?->id ?: 1;
 
@@ -757,7 +786,8 @@ class BillingController extends Controller
             'bill_discount' => ['nullable', 'numeric', 'min:0'],
             'services' => ['nullable', 'array'],
             'services.*.id' => ['nullable', 'integer'],
-            'services.*.service_id' => ['required', 'integer'],
+            'services.*.service_id' => ['nullable', 'integer'],
+            'services.*.service_name' => ['nullable', 'string', 'max:255'],
             'services.*.charges' => ['required', 'numeric', 'min:0'],
             'services.*.qty' => ['required', 'numeric', 'min:0.01'],
             'services.*.discount' => ['nullable', 'numeric', 'min:0'],
@@ -783,6 +813,25 @@ class BillingController extends Controller
             foreach ($submittedServices as $srv) {
                 $genBillId = ! empty($srv['id']) ? (int) $srv['id'] : null;
                 $isRemoved = ! empty($srv['is_removed']);
+
+                // Resolve target service ID and name
+                $targetServiceId = ! empty($srv['service_id']) ? (int) $srv['service_id'] : null;
+                $serviceName = ! empty($srv['service_name']) ? trim((string) $srv['service_name']) : null;
+
+                if (! empty($serviceName)) {
+                    if ($targetServiceId) {
+                        $svc = HospitalService::find($targetServiceId);
+                        if ($svc && $svc->service !== $serviceName) {
+                            $svc->update(['service' => $serviceName]);
+                        }
+                    } else {
+                        $svc = HospitalService::firstOrCreate(
+                            ['service' => $serviceName],
+                            ['active' => 1, 'is_group' => false]
+                        );
+                        $targetServiceId = $svc->id;
+                    }
+                }
 
                 if ($genBillId) {
                     $processedExistingIds[] = $genBillId;
@@ -812,21 +861,33 @@ class BillingController extends Controller
                             ]);
                         }
                     } else {
-                        // Update charges, qty, discount
+                        // Update service_id, charges, qty, discount
+                        $updateData = [
+                            'charges' => (float) $srv['charges'],
+                            'qty' => (float) ($srv['qty'] ?? 1),
+                            'discount' => (float) ($srv['discount'] ?? 0),
+                            'updated_by' => $userId,
+                        ];
+                        if ($targetServiceId) {
+                            $updateData['service_id'] = $targetServiceId;
+                        }
+
                         PatientGenBill::where('id', $genBillId)
                             ->where('bill_id', $bill->id)
-                            ->update([
-                                'charges' => (float) $srv['charges'],
-                                'qty' => (float) ($srv['qty'] ?? 1),
-                                'discount' => (float) ($srv['discount'] ?? 0),
-                                'updated_by' => $userId,
+                            ->update($updateData);
+
+                        if ($order && $targetServiceId) {
+                            LabOrderItem::where('gen_bill_id', $genBillId)->update([
+                                'service_id' => $targetServiceId,
                             ]);
+                        }
                     }
-                } elseif (! $isRemoved) {
+                } elseif (! $isRemoved && ($targetServiceId || ! empty($srv['service_id']))) {
+                    $effectiveServiceId = $targetServiceId ?: (int) $srv['service_id'];
                     // New service added to the bill
                     $newGenBill = PatientGenBill::create([
                         'bill_id' => $bill->id,
-                        'service_id' => (int) $srv['service_id'],
+                        'service_id' => $effectiveServiceId,
                         'charges' => (float) $srv['charges'],
                         'qty' => (float) ($srv['qty'] ?? 1),
                         'discount' => (float) ($srv['discount'] ?? 0),
@@ -858,7 +919,7 @@ class BillingController extends Controller
                     if ($order) {
                         $orderItem = LabOrderItem::create([
                             'lab_order_id' => $order->id,
-                            'service_id' => (int) $srv['service_id'],
+                            'service_id' => $effectiveServiceId,
                             'gen_bill_id' => $newGenBill->id,
                             'status' => LabState::ORDERED,
                             'tat_due_at' => Carbon::now()->addHours(4),
@@ -1009,8 +1070,9 @@ class BillingController extends Controller
     /**
      * Record payment and settle bill due amount.
      */
-    public function settlePayment(Request $request, int $billId): JsonResponse
+    public function settlePayment(Request $request, int|string $billId): JsonResponse
     {
+        $billId = (int) $billId;
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_mode' => ['required', 'string', 'in:cash,card,upi,credit,net_banking,cheque'],
@@ -1063,8 +1125,9 @@ class BillingController extends Controller
     /**
      * Update bill metadata (referral doctor, notes).
      */
-    public function updateBill(Request $request, int $billId): JsonResponse
+    public function updateBill(Request $request, int|string $billId): JsonResponse
     {
+        $billId = (int) $billId;
         $validated = $request->validate([
             'referral_doctor' => ['nullable', 'string', 'max:150'],
             'discount' => ['nullable', 'numeric', 'min:0'],

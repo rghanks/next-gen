@@ -123,6 +123,11 @@ class ReportController extends Controller
         $qrCodeUri = $this->reportRenderer->generateQrCodeUri($verifyUrl);
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
 
+        $labSetting = LabSetting::current();
+        $combineReports = $request->has('combine')
+            ? $request->boolean('combine')
+            : (bool) ($labSetting->combine_reports_on_print ?? false);
+
         return view('lab.reports.templates.report_layout', [
             'order' => $order,
             'report' => $report,
@@ -132,15 +137,20 @@ class ReportController extends Controller
             'verifyUrl' => $verifyUrl,
             'isPdf' => false,
             'selectedItemId' => $selectedItemId,
+            'combineReports' => $combineReports,
         ]);
     }
 
     /**
-     * Generate & stream printable PDF report inline (with configurable top/bottom margins).
+     * Print PDF with custom Margins (direct letterhead paper printing).
      */
     public function printPdf(LabOrder $order, Request $request): Response|BinaryFileResponse
     {
-        $order->loadMissing(['patient', 'latestReport.verifiedByUser', 'reports.verifiedByUser']);
+        $order->loadMissing([
+            'patient',
+            'latestReport.verifiedByUser',
+            'reports.verifiedByUser',
+        ]);
 
         $version = (int) $request->input('version', 0);
         $report = $version > 0
@@ -165,20 +175,26 @@ class ReportController extends Controller
 
         $labSetting = LabSetting::current();
 
-        // Print header setting: default false (print on pre-printed stationery with top/bottom margin)
+        // Print header/letterhead flag: Default to true if user configured print_with_header, or if letterhead image is enabled
+        $hasCustomHeader = (bool) $labSetting->print_with_header || ((bool) $labSetting->use_letterhead_image && (! empty($labSetting->header_image_path) || ! empty($labSetting->footer_image_path)));
         $withHeader = $request->has('with_header')
             ? $request->boolean('with_header')
-            : (bool) $labSetting->print_with_header;
+            : $hasCustomHeader;
 
+        // Custom margin support (standard 4mm when printing with header banner, or custom mm for pre-printed letterhead)
         $topMargin = $request->has('top_margin')
             ? (int) $request->input('top_margin')
-            : ($labSetting->print_top_margin ?? 35);
+            : ($withHeader ? 4 : ($labSetting->print_top_margin ?? 35));
 
         $bottomMargin = $request->has('bottom_margin')
             ? (int) $request->input('bottom_margin')
-            : ($labSetting->print_bottom_margin ?? 20);
+            : ($withHeader ? 4 : ($labSetting->print_bottom_margin ?? 20));
 
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
+
+        $combineReports = $request->has('combine')
+            ? $request->boolean('combine')
+            : (bool) ($labSetting->combine_reports_on_print ?? false);
 
         $res = $this->reportRenderer->renderAndStorePdf(
             $order,
@@ -187,7 +203,8 @@ class ReportController extends Controller
             $topMargin,
             $bottomMargin,
             'print',
-            $selectedItemId
+            $selectedItemId,
+            $combineReports
         );
 
         $fullPath = Storage::disk('local')->path($res['path']);
@@ -210,21 +227,24 @@ class ReportController extends Controller
 
         return response()->file($fullPath, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="Print_Report_' . $order->accession_no . '_v' . $report->version . '.pdf"',
+            'Content-Disposition' => 'inline; filename="Print_Report_'.$order->accession_no.'_v'.$report->version.'.pdf"',
         ]);
     }
 
     /**
-     * Download or view stored immutable PDF with header (as uploaded in print setting).
+     * Download Diagnostic Report PDF (full letterhead header and footer included).
      */
     public function downloadPdf(LabOrder $order, Request $request): BinaryFileResponse|Response
     {
-        // If print=1 query parameter is passed, delegate directly to printPdf
         if ($request->boolean('print') || $request->input('mode') === 'print') {
             return $this->printPdf($order, $request);
         }
 
-        $order->loadMissing(['patient', 'latestReport.verifiedByUser', 'reports.verifiedByUser']);
+        $order->loadMissing([
+            'patient',
+            'latestReport.verifiedByUser',
+            'reports.verifiedByUser',
+        ]);
 
         $version = (int) $request->input('version', 0);
         $report = $version > 0
@@ -247,18 +267,23 @@ class ReportController extends Controller
 
         $report->loadMissing(['verifiedByUser']);
 
-        $labSetting = LabSetting::current();
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
 
-        // Download always includes header as uploaded by user in print setting
+        $labSetting = LabSetting::current();
+        $combineReports = $request->has('combine')
+            ? $request->boolean('combine')
+            : (bool) ($labSetting->combine_reports_on_print ?? false);
+
+        // Download always includes header and footer
         $res = $this->reportRenderer->renderAndStorePdf(
             $order,
             $report,
             true, // withLetterhead = true
-            null, // standard top margin
-            $labSetting->print_bottom_margin ?? 20,
+            null, // standard top margin (8mm)
+            null, // standard bottom margin (8mm)
             'download',
-            $selectedItemId
+            $selectedItemId,
+            $combineReports
         );
 
         $fullPath = Storage::disk('local')->path($res['path']);
@@ -367,8 +392,9 @@ class ReportController extends Controller
     /**
      * Public signed URL verification view (for QR code scans).
      */
-    public function verifyPublic(LabOrder $order, int $version): View
+    public function verifyPublic(LabOrder $order, int|string $version): View
     {
+        $version = (int) $version;
         $report = $order->reports()->where('version', $version)->firstOrFail();
         $report->loadMissing(['verifiedByUser']);
         $order->load(['patient', 'items.service']);

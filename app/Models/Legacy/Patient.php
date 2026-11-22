@@ -76,10 +76,9 @@ class Patient extends Model
 
     public function getFullNameAttribute(): string
     {
-        $prefix = $this->prefix ? trim($this->prefix).' ' : '';
         $lname = $this->Lname ? ' '.trim($this->Lname) : '';
 
-        return trim($prefix.$this->Fname.$lname);
+        return trim(($this->Fname ?? '').$lname);
     }
 
     public function visits(): HasMany

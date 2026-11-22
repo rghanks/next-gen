@@ -391,7 +391,7 @@
                 <div>
                     <div class="d-flex align-items-center gap-2">
                         <h5 class="fw-bold text-dark m-0" style="font-size: 15px;">
-                            {{ ($patient?->prefix ? $patient->prefix.' ' : '').($patient?->full_name ?: 'Patient #'.$order->patient_id) }}
+                            {{ $patient?->full_name ?: ('Patient #'.$order->patient_id) }}
                         </h5>
                         @if($isSTAT)
                             <span class="badge bg-danger text-white py-0 px-2" style="font-size: 10px;">STAT · URGENT</span>

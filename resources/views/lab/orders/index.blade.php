@@ -520,6 +520,9 @@
                                 <button type="button" class="btn btn-sm btn-outline-dark px-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#printSettingsModal" style="height: 31px; font-size: 11.5px; display: inline-flex; align-items: center;" title="Configure Print Margins and Letterhead Header">
                                     <i class="uil uil-sliders-v-alt me-1 text-primary"></i> Print Settings
                                 </button>
+                                <span class="badge bg-light text-primary border px-2 py-1 fw-semibold d-inline-flex align-items-center" style="height: 31px; font-size: 11.5px;" title="Sample Number Series configured in Lab Settings">
+                                    <i class="uil uil-tag-alt me-1 text-teal"></i> Next Sample: <span class="badge bg-primary text-white ms-1" id="topbar-next-sample-badge">{{ $nextSampleBarcode ?? 'SMP-000001' }}</span>
+                                </span>
                             </div>
 
                         </div>
@@ -588,7 +591,7 @@
                                     <!-- 2. Patient -->
                                     <td class="text-nowrap">
                                         <span class="patient-name-text">
-                                            {{ ($patient?->prefix ? $patient->prefix.' ' : '').($patient?->full_name ?: 'Patient #'.$ord->patient_id) }}
+                                            {{ $patient?->full_name ?: ('Patient #'.$ord->patient_id) }}
                                         </span>
                                     </td>
 
@@ -617,13 +620,16 @@
 
                                     <!-- 7. Sample ID -->
                                     <td class="text-center text-nowrap sample-col-{{ $ord->id }}">
+                                        @php
+                                            $sampleBarcode = $firstSpecimen?->barcode ?: $ord->accession_no;
+                                        @endphp
                                         @if($isCollected && $firstSpecimen)
                                             <button type="button" class="btn btn-sample-id" onclick="printDirectPreview('{{ $barcodeUrl }}')" title="Click to print tube barcode label">
-                                                {{ $firstSpecimen->barcode ?: $ord->accession_no }}
+                                                {{ $sampleBarcode }}
                                             </button>
                                         @else
-                                            <button type="button" class="btn btn-generate-sample" onclick="collectSampleQuick({{ $ord->id }})" title="Generate Sample ID & Collect Specimen">
-                                                Generate Sample ID
+                                            <button type="button" class="btn btn-generate-sample" onclick="collectSampleQuick({{ $ord->id }})" title="Click to collect sample {{ $sampleBarcode }}">
+                                                <i class="uil uil-flask me-1"></i>{{ $sampleBarcode }}
                                             </button>
                                         @endif
                                     </td>
@@ -752,20 +758,23 @@
                                     </a>
                                 </td>
                                 <td class="text-nowrap">
-                                    <span class="patient-name-text">{{ ($patient?->prefix ? $patient->prefix.' ' : '').($patient?->full_name ?: 'Patient #'.$ord->patient_id) }}</span>
+                                    <span class="patient-name-text">{{ $patient?->full_name ?: ('Patient #'.$ord->patient_id) }}</span>
                                 </td>
                                 <td class="text-center fw-medium">{{ $patient?->uhid ?: $patient?->id ?: '-' }}</td>
                                 <td class="text-nowrap"><span class="doctor-name-text">{{ $doctorName }}</span></td>
                                 <td class="text-nowrap"><span class="bill-date-text">{{ $ord->created_at ? $ord->created_at->format('d/m/y h:i A') : '-' }}</span></td>
                                 <td><span class="text-muted">Investigation #{{ $ord->accession_no }}</span></td>
                                 <td class="text-center text-nowrap sample-col-{{ $ord->id }}">
+                                    @php
+                                        $sampleBarcode = $firstSpecimen?->barcode ?: $ord->accession_no;
+                                    @endphp
                                     @if($isCollected && $firstSpecimen)
-                                        <button type="button" class="btn btn-sample-id" onclick="printDirectPreview('{{ $barcodeUrl }}')">
-                                            {{ $firstSpecimen->barcode ?: $ord->accession_no }}
+                                        <button type="button" class="btn btn-sample-id" onclick="printDirectPreview('{{ $barcodeUrl }}')" title="Click to print tube barcode label">
+                                            {{ $sampleBarcode }}
                                         </button>
                                     @else
-                                        <button type="button" class="btn btn-generate-sample" onclick="collectSampleQuick({{ $ord->id }})">
-                                            Generate Sample ID
+                                        <button type="button" class="btn btn-generate-sample" onclick="collectSampleQuick({{ $ord->id }})" title="Click to collect sample {{ $sampleBarcode }}">
+                                            <i class="uil uil-flask me-1"></i>{{ $sampleBarcode }}
                                         </button>
                                     @endif
                                 </td>
@@ -959,7 +968,7 @@
                         </div>
                     </div>
 
-                    <div class="card p-3 border bg-white shadow-sm">
+                    <div class="card p-3 mb-3 border bg-white shadow-sm">
                         <div class="fw-bold text-dark mb-2 d-flex align-items-center gap-1" style="font-size: 12.5px;">
                             <i class="uil uil-image text-success"></i> Header Banner Image (Used on Downloaded PDF Reports)
                         </div>
@@ -969,7 +978,7 @@
                                     @if($labSetting->header_image_path && file_exists(public_path($labSetting->header_image_path)))
                                         <img src="{{ asset($labSetting->header_image_path) }}" alt="Current Header" id="modalHeaderPreview" style="max-height: 70px; max-width: 100%; object-fit: contain;">
                                     @else
-                                        <div class="text-muted small" id="modalNoHeaderText"><i class="uil uil-image-slash fs-4 d-block"></i>No banner uploaded</div>
+                                        <div class="text-muted small" id="modalNoHeaderText"><i class="uil uil-image-slash fs-4 d-block"></i>No header banner uploaded</div>
                                         <img src="" alt="Header Preview" id="modalHeaderPreview" style="display: none; max-height: 70px; max-width: 100%;">
                                     @endif
                                 </div>
@@ -986,6 +995,34 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="card p-3 border bg-white shadow-sm">
+                        <div class="fw-bold text-dark mb-2 d-flex align-items-center gap-1" style="font-size: 12.5px;">
+                            <i class="uil uil-image-alt text-primary"></i> Footer Banner Image (Used on Downloaded PDF Reports)
+                        </div>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4 text-center">
+                                <div class="border rounded p-2 bg-light d-flex align-items-center justify-content-center" style="min-height: 80px;">
+                                    @if($labSetting->footer_image_path && file_exists(public_path($labSetting->footer_image_path)))
+                                        <img src="{{ asset($labSetting->footer_image_path) }}" alt="Current Footer" id="modalFooterPreview" style="max-height: 70px; max-width: 100%; object-fit: contain;">
+                                    @else
+                                        <div class="text-muted small" id="modalNoFooterText"><i class="uil uil-image-slash fs-4 d-block"></i>No footer banner uploaded</div>
+                                        <img src="" alt="Footer Preview" id="modalFooterPreview" style="display: none; max-height: 70px; max-width: 100%;">
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="filter-label fw-bold mb-1">Upload New Footer Image</label>
+                                <input type="file" name="footer_image" id="setting_footer_image" class="form-control form-control-sm mb-2" accept="image/*" onchange="previewImageFile(this, '#modalFooterPreview', '#modalNoFooterText')">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted small" style="font-size: 10.5px;">Banner Height:</span>
+                                    <input type="number" name="footer_height" id="setting_footer_height" class="form-control form-control-sm text-center" value="{{ $labSetting->footer_height ?? 50 }}" style="width: 75px; height: 28px;">
+                                    <span class="text-muted small" style="font-size: 10.5px;">px</span>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 9.5px;">Supports PNG, JPG, JPEG, WEBP. Appears automatically at the bottom of downloaded PDF reports.</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer py-2 px-3 d-flex justify-content-between align-items-center" style="background-color: #f1f5f9; border-top: 1px solid #cbd5e1;">
                     <a href="{{ route('lab.settings.index') }}" target="_blank" class="btn btn-sm btn-link text-decoration-none text-muted" style="font-size: 11px;">
@@ -997,6 +1034,130 @@
                             <i class="uil uil-save me-1"></i> Save Print Settings
                         </button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 1. SAMPLE SERIES CONFIGURATION MODAL                           -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalSampleSeries" tabindex="-1" aria-labelledby="modalSampleSeriesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: 2px solid #0284c7; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2" id="modalSampleSeriesLabel" style="font-size: 13.5px;">
+                    <i class="uil uil-sliders-v-alt"></i>
+                    <span>Configure Sample Number Series</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formSampleSeries" onsubmit="event.preventDefault(); submitSampleSeries();">
+                <div class="modal-body p-3 bg-light">
+                    <div class="p-3 bg-white border rounded mb-3">
+                        <div class="text-muted small mb-1">Current Active Next Sample No:</div>
+                        <div class="fs-5 fw-bold text-success font-monospace" id="modal_current_next_preview">
+                            {{ $nextSampleBarcode ?? 'SMP-000001' }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;">Start / Reset Series From Number <span class="text-danger">*</span></label>
+                        <input type="number" id="series_next_number" class="form-control" min="1" placeholder="e.g. 100, 500, 1001" required>
+                        <small class="text-muted" style="font-size: 10.5px;">Next generated sample will start from this number and count upwards sequentially.</small>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;">Sample Prefix (Optional)</label>
+                        <input type="text" id="series_prefix" class="form-control form-control-sm" value="{{ $labSetting->sample_no_prefix ?? 'SMP' }}" placeholder="e.g. SMP, LAB, PATH (or leave blank)">
+                        <small class="text-muted" style="font-size: 10.5px;">Prefix attached to sample numbers (e.g. SMP &rarr; SMP-000500).</small>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-3 bg-white border-top">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-3" id="btnSaveSampleSeries">
+                        <i class="uil uil-check me-1"></i> Start Series
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 2. EDIT EXISTING SAMPLE NUMBER MODAL                           -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalEditSample" tabindex="-1" aria-labelledby="modalEditSampleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: 2px solid #16a34a; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+                <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2" id="modalEditSampleLabel" style="font-size: 13.5px;">
+                    <i class="uil uil-pen"></i>
+                    <span>Edit Sample Number</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditSample" onsubmit="event.preventDefault(); submitEditSample();">
+                <input type="hidden" id="edit_sample_order_id">
+                <div class="modal-body p-3 bg-light">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;">Custom Sample Number <span class="text-danger">*</span></label>
+                        <input type="text" id="edit_sample_barcode" class="form-control fw-bold" placeholder="e.g. 500 or SMP-000500" required>
+                        <small class="text-muted" style="font-size: 10.5px;">You can type just digits (e.g. 500) or a full barcode (e.g. SMP-000500).</small>
+                    </div>
+
+                    <div class="form-check form-switch p-2 bg-white border rounded">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="edit_sample_start_series" checked>
+                        <label class="form-check-label fw-bold text-dark" for="edit_sample_start_series" style="font-size: 11.5px;">
+                            Start subsequent series from this number
+                        </label>
+                        <div class="text-muted small ps-4" style="font-size: 10px;">Subsequent new samples will automatically count up from this number.</div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-3 bg-white border-top">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success fw-bold px-3" id="btnSaveEditSample">
+                        <i class="uil uil-save me-1"></i> Update Sample No.
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 3. CUSTOM SAMPLE COLLECTION MODAL                              -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalCustomCollect" tabindex="-1" aria-labelledby="modalCustomCollectLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: 2px solid #0284c7; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2" id="modalCustomCollectLabel" style="font-size: 13.5px;">
+                    <i class="uil uil-flask"></i>
+                    <span>Collect Specimen with Custom Sample No.</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCustomCollect" onsubmit="event.preventDefault(); submitCustomCollect();">
+                <input type="hidden" id="custom_collect_order_id">
+                <div class="modal-body p-3 bg-light">
+                    <div class="p-2 px-3 bg-white border rounded mb-3 d-flex align-items-center justify-content-between">
+                        <span class="text-muted small">Next auto in series:</span>
+                        <span class="fw-bold text-success font-monospace" id="custom_collect_auto_preview">{{ $nextSampleBarcode ?? 'SMP-000001' }}</span>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 12px;">Enter Custom Sample Number <span class="text-danger">*</span></label>
+                        <input type="text" id="custom_collect_input" class="form-control fw-bold" placeholder="e.g. 500 or SMP-000500" required>
+                        <small class="text-muted" style="font-size: 10.5px;">The sample series will automatically start from this number for next samples.</small>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-3 bg-white border-top">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-3" id="btnSubmitCustomCollect">
+                        <i class="uil uil-check-circle me-1"></i> Collect & Start Series
+                    </button>
                 </div>
             </form>
         </div>
@@ -1056,31 +1217,41 @@
     // ══════════════════════════════════════════════════════════════
     // 2. 1-Click Quick Sample ID Generation & Collection
     // ══════════════════════════════════════════════════════════════
-    window.collectSampleQuick = function(orderId) {
+    window.collectSampleQuick = function(orderId, customSampleNo) {
         if (!orderId) return;
 
         const sampleCols = $('.sample-col-' + orderId);
         sampleCols.find('.btn-generate-sample').prop('disabled', true).text('Generating...');
 
+        const payload = {
+            _token: $('meta[name="csrf-token"]').attr('content'),
+            order_id: orderId
+        };
+        if (customSampleNo) {
+            payload.custom_sample_no = customSampleNo;
+        }
+
         $.ajax({
             url: "{{ route('lab.orders.collect-sample') }}",
             type: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({
-                _token: $('meta[name="csrf-token"]').attr('content'),
-                order_id: orderId
-            }),
+            data: JSON.stringify(payload),
             success: function(res) {
                 if (window.lisToast) {
                     window.lisToast(res.message, 'success');
                 }
 
-                // 1. Update all sample cells for this order to green Sample ID pill
+                // 1. Update all sample cells for this order to green Sample ID pill + Edit button
                 sampleCols.html(`
                     <button type="button" class="btn btn-sample-id" onclick="printDirectPreview('${res.barcode_url}')" title="Click to print tube barcode label">
                         ${res.barcode}
                     </button>
                 `);
+
+                // Update topbar next sample badge
+                if (res.next_sample_no) {
+                    $('#topbar-next-sample-badge').text(res.next_sample_no);
+                }
 
                 // 2. Update Reporting cells with "➔ Start" button
                 const reportingCols = $('.reporting-col-' + orderId);
@@ -1107,7 +1278,7 @@
                 }
             },
             error: function(xhr) {
-                sampleCols.find('.btn-generate-sample').prop('disabled', false).text('Generate Sample ID');
+                sampleCols.find('.btn-generate-sample').prop('disabled', false);
                 let err = 'Failed to generate sample ID.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     err = xhr.responseJSON.message;
@@ -1119,6 +1290,135 @@
                 }
             }
         });
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // Sample Number Series Management Functions
+    // ══════════════════════════════════════════════════════════════
+    window.openSampleSeriesModal = function() {
+        $.get("{{ route('lab.orders.next-sample-no') }}", function(res) {
+            if (res && res.next_sample_no) {
+                $('#modal_current_next_preview').text(res.next_sample_no);
+                $('#topbar-next-sample-badge').text(res.next_sample_no);
+            }
+        });
+        $('#series_next_number').val('');
+        const modal = new bootstrap.Modal(document.getElementById('modalSampleSeries'));
+        modal.show();
+    };
+
+    window.submitSampleSeries = function() {
+        const nextNum = parseInt($('#series_next_number').val());
+        const prefix = $('#series_prefix').val().trim();
+        if (!nextNum || nextNum <= 0) {
+            if (window.lisToast) window.lisToast('Please enter a valid starting number.', 'warning');
+            return;
+        }
+
+        const btn = $('#btnSaveSampleSeries').prop('disabled', true).text('Saving...');
+        $.ajax({
+            url: "{{ route('lab.orders.set-sample-series') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                next_number: nextNum,
+                prefix: prefix
+            }),
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="uil uil-check me-1"></i> Start Series');
+                bootstrap.Modal.getInstance(document.getElementById('modalSampleSeries'))?.hide();
+                if (res.next_sample_no) {
+                    $('#topbar-next-sample-badge').text(res.next_sample_no);
+                }
+                if (window.lisToast) {
+                    window.lisToast(res.message, 'success');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="uil uil-check me-1"></i> Start Series');
+                let err = xhr.responseJSON?.message || 'Failed to update sample series.';
+                if (window.lisToast) window.lisToast(err, 'danger');
+            }
+        });
+    };
+
+    window.openEditSampleModal = function(orderId, currentBarcode) {
+        $('#edit_sample_order_id').val(orderId);
+        $('#edit_sample_barcode').val(currentBarcode || '');
+        const modal = new bootstrap.Modal(document.getElementById('modalEditSample'));
+        modal.show();
+    };
+
+    window.submitEditSample = function() {
+        const orderId = $('#edit_sample_order_id').val();
+        const customBarcode = $('#edit_sample_barcode').val().trim();
+        const startSeries = $('#edit_sample_start_series').is(':checked');
+
+        if (!customBarcode) {
+            if (window.lisToast) window.lisToast('Please enter custom sample number.', 'warning');
+            return;
+        }
+
+        const btn = $('#btnSaveEditSample').prop('disabled', true).text('Saving...');
+        $.ajax({
+            url: "{{ route('lab.orders.update-sample-no') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                order_id: orderId,
+                custom_sample_no: customBarcode,
+                start_series: startSeries ? 1 : 0
+            }),
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="uil uil-save me-1"></i> Update Sample No.');
+                bootstrap.Modal.getInstance(document.getElementById('modalEditSample'))?.hide();
+                
+                // Update cells
+                const sampleCols = $('.sample-col-' + orderId);
+                sampleCols.html(`
+                    <button type="button" class="btn btn-sample-id" onclick="printDirectPreview('${res.barcode_url}')" title="Click to print tube barcode label">
+                        ${res.barcode}
+                    </button>
+                `);
+
+                if (res.next_sample_no) {
+                    $('#topbar-next-sample-badge').text(res.next_sample_no);
+                }
+                if (window.lisToast) {
+                    window.lisToast(res.message, 'success');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="uil uil-save me-1"></i> Update Sample No.');
+                let err = xhr.responseJSON?.message || 'Failed to update sample number.';
+                if (window.lisToast) window.lisToast(err, 'danger');
+            }
+        });
+    };
+
+    window.openCustomCollectModal = function(orderId) {
+        $('#custom_collect_order_id').val(orderId);
+        $.get("{{ route('lab.orders.next-sample-no') }}", function(res) {
+            if (res && res.next_sample_no) {
+                $('#custom_collect_auto_preview').text(res.next_sample_no);
+                $('#custom_collect_input').attr('placeholder', res.next_sample_no).val('');
+            }
+        });
+        const modal = new bootstrap.Modal(document.getElementById('modalCustomCollect'));
+        modal.show();
+    };
+
+    window.submitCustomCollect = function() {
+        const orderId = $('#custom_collect_order_id').val();
+        const customNo = $('#custom_collect_input').val().trim();
+        if (!customNo) {
+            if (window.lisToast) window.lisToast('Please enter a sample number.', 'warning');
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('modalCustomCollect'))?.hide();
+        window.collectSampleQuick(orderId, customNo);
     };
 
     // ══════════════════════════════════════════════════════════════
@@ -1484,7 +1784,7 @@
                 btn.prop('disabled', false).html('<i class="uil uil-save me-1"></i> Save Print Settings');
                 if (res.success) {
                     if (window.lisToast) {
-                        window.lisToast('Print margin and header settings saved successfully!', 'success');
+                        window.lisToast('Print margin and header/footer settings saved successfully!', 'success');
                     }
                     const modalEl = document.getElementById('printSettingsModal');
                     const modalInstance = bootstrap.Modal.getInstance(modalEl);

@@ -111,14 +111,22 @@
             <tbody>
                 @php $subtotal = 0; @endphp
                 @foreach($order->items as $idx => $item)
+                    @if($item->status === \App\Domain\Lab\States\LabState::CANCELLED || ($item->legacyGenBill && ($item->legacyGenBill->is_deleted || $item->legacyGenBill->is_cancelled)))
+                        @continue
+                    @endif
                     @php
-                        $price = (float) ($item->legacyGenBill?->charges ?? 0);
-                        $subtotal += $price;
+                        $unitCharge = (float) ($item->legacyGenBill?->charges ?? 0);
+                        $qty = (float) ($item->legacyGenBill?->qty ?? 1);
+                        $linePrice = round($unitCharge * $qty, 2);
+                        $subtotal += $linePrice;
                     @endphp
                     <tr>
                         <td>{{ $idx + 1 }}</td>
-                        <td>{{ $item->service?->service }}</td>
-                        <td class="right">₹{{ number_format($price, 2) }}</td>
+                        <td>
+                            {{ $item->service?->service }}
+                            @if($qty > 1) <small style="color: #666;">(x{{ $qty }})</small> @endif
+                        </td>
+                        <td class="right">₹{{ number_format($linePrice, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -129,7 +137,7 @@
         @php
             $discount = (float) ($order->bill?->discount ?? 0);
             $net = max(0, $subtotal - $discount);
-            $totalPaid = (float) ($order->bill?->payments->sum('amount') ?? 0);
+            $totalPaid = (float) ($order->bill?->payments->where('is_deleted', false)->sum('amount') ?? 0);
             $due = max(0, $net - $totalPaid);
         @endphp
 
@@ -164,7 +172,7 @@
 
         <div style="font-size: 10px;">
             Payment Modes:
-            @foreach($order->bill?->payments ?? [] as $pay)
+            @foreach(($order->bill?->payments ? $order->bill->payments->where('is_deleted', false) : []) as $pay)
                 <span>{{ strtoupper($pay->payment_mode) }}: ₹{{ number_format((float)$pay->amount, 2) }} </span>
             @endforeach
         </div>

@@ -7,12 +7,15 @@ namespace App\Http\Controllers\Lab;
 use App\Domain\Lab\Actions\CollectSpecimen;
 use App\Domain\Lab\Actions\ReceiveSpecimen;
 use App\Domain\Lab\Actions\VerifyResults;
+use App\Domain\Lab\Models\LabBillSequence;
 use App\Domain\Lab\Models\LabOrder;
 use App\Domain\Lab\Models\LabOrderEvent;
 use App\Domain\Lab\Models\Specimen;
+use App\Domain\Lab\Services\AccessionGenerator;
 use App\Domain\Lab\Services\ReportRenderer;
 use App\Domain\Lab\States\LabState;
 use App\Http\Controllers\Controller;
+use App\Models\LabSetting;
 use App\Models\Legacy\HospitalPrintSetting;
 use App\Models\Legacy\HospitalService;
 use App\Models\Legacy\LabInvestigation;
@@ -187,6 +190,7 @@ class LabOrderDeskController extends Controller
             'mobileNo' => $mobileNo,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'nextSampleBarcode' => app(AccessionGenerator::class)->previewNextBarcode(),
         ]);
     }
 
@@ -200,23 +204,43 @@ class LabOrderDeskController extends Controller
             'order_id' => ['nullable', 'integer', 'exists:lab_orders,id'],
             'specimen_id' => ['nullable', 'integer'],
             'barcode' => ['nullable', 'string'],
+            'custom_sample_no' => ['nullable', 'string', 'max:50'],
         ]);
 
         $orderId = $request->input('order_id');
         $barcode = $request->input('barcode');
         $specimenId = $request->input('specimen_id');
+        $customSampleNo = $request->input('custom_sample_no') ? trim($request->input('custom_sample_no')) : null;
 
         $order = null;
         if ($orderId) {
             $order = LabOrder::with('specimens')->findOrFail($orderId);
         }
 
-        $targetBarcode = $barcode;
-        if (! $targetBarcode && $order && $order->specimens->isNotEmpty()) {
-            $targetBarcode = $order->specimens->first()->barcode;
-        } elseif (! $targetBarcode && $specimenId) {
-            $specimen = Specimen::find($specimenId);
-            $targetBarcode = $specimen?->barcode;
+        // If custom sample number provided, assign it and restart the series
+        if ($customSampleNo) {
+            $accessionGen = app(AccessionGenerator::class);
+            $targetSpecimen = null;
+            if ($order && $order->specimens->isNotEmpty()) {
+                $targetSpecimen = $order->specimens->first();
+            } elseif ($specimenId) {
+                $targetSpecimen = Specimen::find($specimenId);
+            }
+
+            $newBarcode = $accessionGen->generateBarcode('blood', null, $customSampleNo);
+            if ($targetSpecimen) {
+                $targetSpecimen->barcode = $newBarcode;
+                $targetSpecimen->save();
+            }
+            $targetBarcode = $newBarcode;
+        } else {
+            $targetBarcode = $barcode;
+            if (! $targetBarcode && $order && $order->specimens->isNotEmpty()) {
+                $targetBarcode = $order->specimens->first()->barcode;
+            } elseif (! $targetBarcode && $specimenId) {
+                $specimen = Specimen::find($specimenId);
+                $targetBarcode = $specimen?->barcode;
+            }
         }
 
         if (! $targetBarcode) {
@@ -247,6 +271,127 @@ class LabOrderDeskController extends Controller
             'badge_class' => $updatedOrder?->status->badgeClass() ?? 'badge-status-paid',
             'barcode_url' => $updatedOrder ? route('lab.billing.barcode', $updatedOrder->id) : null,
             'result_entry_url' => $updatedOrder ? route('lab.results.entry', $updatedOrder->id) : null,
+            'next_sample_no' => app(AccessionGenerator::class)->previewNextBarcode(),
+        ]);
+    }
+
+    /**
+     * Update sample number for an order and restart series from there.
+     */
+    public function updateSampleNumber(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_id' => ['required', 'integer', 'exists:lab_orders,id'],
+            'custom_sample_no' => ['required', 'string', 'max:50'],
+            'start_series' => ['nullable', 'boolean'],
+        ]);
+
+        $order = LabOrder::with('specimens')->findOrFail((int) $validated['order_id']);
+        $firstSpecimen = $order->specimens->first();
+        if (! $firstSpecimen) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No specimen found for this order.',
+            ], 422);
+        }
+
+        $accessionGen = app(AccessionGenerator::class);
+        $setting = LabSetting::current();
+        $customInput = trim($validated['custom_sample_no']);
+        $parsed = $accessionGen->parseBarcode($customInput, $setting);
+        $newBarcode = $parsed['barcode'];
+
+        // Check if barcode belongs to another specimen
+        $conflict = Specimen::where('barcode', $newBarcode)
+            ->where('id', '!=', $firstSpecimen->id)
+            ->exists();
+
+        if ($conflict) {
+            return response()->json([
+                'success' => false,
+                'message' => "Sample number '{$newBarcode}' is already assigned to another specimen.",
+            ], 422);
+        }
+
+        $oldBarcode = $firstSpecimen->barcode;
+        $firstSpecimen->barcode = $newBarcode;
+        $firstSpecimen->save();
+
+        $startSeries = $request->boolean('start_series', true);
+        if ($startSeries) {
+            $prefix = $parsed['prefix'] ?: trim((string) ($setting?->sample_no_prefix ?? 'SMP'));
+            $cleanPrefix = rtrim($prefix, '-');
+            if ($cleanPrefix === '') {
+                $cleanPrefix = 'SMP';
+            }
+            $resetPeriod = (string) ($setting?->sample_no_reset_period ?? 'continuous');
+            $fy = $resetPeriod === 'daily' ? Carbon::now()->format('Ymd') : 'GLOBAL';
+
+            $seq = LabBillSequence::where('prefix', $cleanPrefix)
+                ->where('financial_year', $fy)
+                ->first();
+            if ($seq) {
+                $seq->last_number = $parsed['number'];
+                $seq->save();
+            } else {
+                LabBillSequence::create([
+                    'prefix' => $cleanPrefix,
+                    'financial_year' => $fy,
+                    'last_number' => $parsed['number'],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sample number updated to '{$newBarcode}'" . ($startSeries ? " and series restarted from {$parsed['number']}!" : "!"),
+            'barcode' => $newBarcode,
+            'old_barcode' => $oldBarcode,
+            'next_sample_no' => $accessionGen->previewNextBarcode(),
+            'barcode_url' => route('lab.billing.barcode', $order->id),
+        ]);
+    }
+
+    /**
+     * Set the next starting number for the sample series.
+     */
+    public function setSampleSeries(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'next_number' => ['required', 'integer', 'min:1'],
+            'prefix' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $nextNumber = (int) $validated['next_number'];
+        $prefix = isset($validated['prefix']) ? trim($validated['prefix']) : null;
+
+        $accessionGen = app(AccessionGenerator::class);
+        $accessionGen->setNextSampleNumber($nextNumber, $prefix);
+
+        if ($prefix !== null && $prefix !== '') {
+            $setting = LabSetting::current();
+            $setting->sample_no_prefix = $prefix;
+            $setting->save();
+        }
+
+        $nextPreview = $accessionGen->previewNextBarcode();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sample series started from {$nextNumber}! Next sample will be {$nextPreview}.",
+            'next_sample_no' => $nextPreview,
+        ]);
+    }
+
+    /**
+     * Get preview of the next sample number in series.
+     */
+    public function getNextSampleNumber(): JsonResponse
+    {
+        $accessionGen = app(AccessionGenerator::class);
+        return response()->json([
+            'success' => true,
+            'next_sample_no' => $accessionGen->previewNextBarcode(),
         ]);
     }
 

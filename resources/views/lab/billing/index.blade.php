@@ -9,6 +9,7 @@
      data-services-url="{{ route('lab.api.services.search') }}"
      data-today-visits-url="{{ route('lab.api.billing.today-visits') }}"
      data-referral-store-url="{{ route('lab.api.referrals.store') }}"
+     data-next-sample-url="{{ route('lab.billing.next-sample-no') }}"
      data-store-url="{{ route('lab.api.billing.store') }}">
 
     <!-- Page Title & Header Bar -->
@@ -92,6 +93,27 @@
                                 </select>
                                 <button type="button" class="btn btn-outline-teal btn-sm" id="btn-add-referral-modal" title="Add New Referring Doctor" style="height: 34px;">
                                     <i class="uil uil-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Sample No (Custom or Auto Series) -->
+                    <div class="col-auto">
+                        <div class="d-flex align-items-center gap-1" style="min-width: 220px;">
+                            <label for="custom_sample_no" class="form-label mb-0 fw-bold text-dark text-nowrap" style="font-size: 11.5px;">
+                                <i class="uil uil-tag-alt text-teal me-1"></i> Sample No:
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       id="custom_sample_no"
+                                       placeholder="Auto: {{ $nextSampleBarcode ?? 'SMP-000001' }}"
+                                       data-default-preview="{{ $nextSampleBarcode ?? 'SMP-000001' }}"
+                                       title="Enter custom sample no. to start series from there, or leave empty for auto series"
+                                       style="font-size: 11.5px; height: 34px; font-weight: 600;">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-refresh-sample-no" title="Reset / Refresh next sample number in series" style="height: 34px;">
+                                    <i class="uil uil-sync"></i>
                                 </button>
                             </div>
                         </div>

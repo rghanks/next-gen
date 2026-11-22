@@ -90,7 +90,7 @@ class CreateLabBill
 
                 $patient = Patient::create([
                     'uhid' => $uhid,
-                    'prefix' => $walkin['sex'] === 'female' ? 'Ms.' : 'Mr.',
+                    'prefix' => '',
                     'Fname' => $fname,
                     'Lname' => $lname,
                     'age' => $walkin['age'],
@@ -195,18 +195,31 @@ class CreateLabBill
 
             foreach ($data['items'] as $rawItem) {
                 $serviceId = (int) $rawItem['service_id'];
-                $unitCharge = $this->priceResolver->resolve($serviceId, $payerCategory, null, $branchId);
-                $discountAmt = isset($rawItem['discount']) ? round((float) $rawItem['discount'], 2) : 0.00;
-                if ($discountAmt > $unitCharge) {
-                    $discountAmt = $unitCharge;
+
+                // Prioritize explicit rate/charge billed to the patient
+                if (isset($rawItem['charge']) && is_numeric($rawItem['charge'])) {
+                    $unitCharge = round((float) $rawItem['charge'], 2);
+                } elseif (isset($rawItem['price']) && is_numeric($rawItem['price'])) {
+                    $unitCharge = round((float) $rawItem['price'], 2);
+                } else {
+                    $unitCharge = $this->priceResolver->resolve($serviceId, $payerCategory, null, $branchId);
                 }
 
-                $subtotal += $unitCharge;
+                $qty = isset($rawItem['qty']) && is_numeric($rawItem['qty']) ? max(0.01, (float) $rawItem['qty']) : 1.00;
+                $lineTotal = round($unitCharge * $qty, 2);
+
+                $discountAmt = isset($rawItem['discount']) ? round((float) $rawItem['discount'], 2) : 0.00;
+                if ($discountAmt > $lineTotal) {
+                    $discountAmt = $lineTotal;
+                }
+
+                $subtotal += $lineTotal;
                 $totalItemDiscount += $discountAmt;
 
                 $lineItems[] = [
                     'service_id' => $serviceId,
                     'charge' => $unitCharge,
+                    'qty' => $qty,
                     'discount' => $discountAmt,
                     'discount_per' => isset($rawItem['discount_per']) ? (float) $rawItem['discount_per'] : 0.00,
                     'outsource_lab_id' => $rawItem['outsource_lab_id'] ?? null,
@@ -257,7 +270,8 @@ class CreateLabBill
             ]);
 
             // 7. Create specimen container
-            $specimenBarcode = $this->accessionGenerator->generateBarcode('blood');
+            $customSampleNo = ! empty($data['custom_sample_no']) ? trim((string) $data['custom_sample_no']) : null;
+            $specimenBarcode = $this->accessionGenerator->generateBarcode('blood', null, $customSampleNo);
             $specimen = Specimen::create([
                 'lab_order_id' => $order->id,
                 'barcode' => $specimenBarcode,
@@ -272,7 +286,7 @@ class CreateLabBill
                     'bill_id' => $legacyBilling->id,
                     'service_id' => $item['service_id'],
                     'charges' => $item['charge'],
-                    'qty' => 1.00,
+                    'qty' => $item['qty'],
                     'discount' => $item['discount'],
                     'discount_per' => $item['discount_per'],
                     'service_status' => 'booked',

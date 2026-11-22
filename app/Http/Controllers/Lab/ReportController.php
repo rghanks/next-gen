@@ -25,24 +25,21 @@ class ReportController extends Controller
     public function __construct(
         protected ReportRenderer $reportRenderer,
         protected AmendReport $amendReport
-    ) {}
+    ) {
+    }
 
-    /**
-     * Show Released Reports List.
-     */
     public function index(Request $request): View
     {
         $term = $request->input('q');
-
         $query = LabOrder::with([
             'patient',
             'latestReport.verifiedByUser',
             'reports.verifiedByUser',
             'items.service',
-            'items.legacyGenBill',
+            'items.legacyGenBill'
         ])
-            ->where('status', LabState::RELEASED->value)
-            ->latest('id');
+        ->where('status', LabState::RELEASED->value)
+        ->latest('id');
 
         if ($term) {
             $query->where(function ($q) use ($term) {
@@ -62,9 +59,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Preview report HTML.
-     */
     public function viewHtml(LabOrder $order, Request $request): View
     {
         $order->loadMissing([
@@ -84,13 +78,10 @@ class ReportController extends Controller
             ? $order->reports()->where('version', $version)->firstOrFail()
             : $order->latestReport;
 
-        if (! $report) {
+        if (!$report) {
             if (in_array($order->status, [LabState::RELEASED, LabState::VERIFIED, LabState::RESULTED])) {
                 $report = LabReport::firstOrCreate(
-                    [
-                        'lab_order_id' => $order->id,
-                        'version' => 1,
-                    ],
+                    ['lab_order_id' => $order->id, 'version' => 1],
                     [
                         'template' => 'standard',
                         'verified_by' => $order->ordered_by ?: 1,
@@ -104,7 +95,6 @@ class ReportController extends Controller
 
         $report->loadMissing(['verifiedByUser']);
 
-        // Audit read access
         LabOrderEvent::create([
             'order_id' => $order->id,
             'from_state' => LabState::RELEASED->value,
@@ -117,13 +107,16 @@ class ReportController extends Controller
             ],
         ]);
 
+        $labSetting = LabSetting::current();
         $letterhead = $request->boolean('letterhead', true);
-        $verifyUrl = route('lab.reports.verify-public', ['order' => $order->id, 'version' => $report->version]);
+
+        $verifyUrl = route('lab.reports.verify-public', [
+            'order' => $order->id,
+            'version' => $report->version,
+        ]);
         $barcodeUri = $this->reportRenderer->generateBarcodeUri($order->accession_no);
         $qrCodeUri = $this->reportRenderer->generateQrCodeUri($verifyUrl);
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
-
-        $labSetting = LabSetting::current();
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
@@ -141,9 +134,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Print PDF with custom Margins (direct letterhead paper printing).
-     */
     public function printPdf(LabOrder $order, Request $request): Response|BinaryFileResponse
     {
         $order->loadMissing([
@@ -157,12 +147,9 @@ class ReportController extends Controller
             ? $order->reports()->where('version', $version)->first()
             : $order->latestReport;
 
-        if (! $report) {
+        if (!$report) {
             $report = LabReport::firstOrCreate(
-                [
-                    'lab_order_id' => $order->id,
-                    'version' => 1,
-                ],
+                ['lab_order_id' => $order->id, 'version' => 1],
                 [
                     'template' => 'standard',
                     'verified_by' => $order->ordered_by ?: 1,
@@ -175,13 +162,11 @@ class ReportController extends Controller
 
         $labSetting = LabSetting::current();
 
-        // Print header/letterhead flag: Default to true if user configured print_with_header, or if letterhead image is enabled
-        $hasCustomHeader = (bool) $labSetting->print_with_header || ((bool) $labSetting->use_letterhead_image && (! empty($labSetting->header_image_path) || ! empty($labSetting->footer_image_path)));
+        // Print mode: Default to false (WITHOUT header/footer images) unless explicitly requested with with_header=1
         $withHeader = $request->has('with_header')
             ? $request->boolean('with_header')
-            : $hasCustomHeader;
+            : (bool) ($labSetting->print_with_header ?? false);
 
-        // Custom margin support (standard 4mm when printing with header banner, or custom mm for pre-printed letterhead)
         $topMargin = $request->has('top_margin')
             ? (int) $request->input('top_margin')
             : ($withHeader ? 4 : ($labSetting->print_top_margin ?? 35));
@@ -191,7 +176,6 @@ class ReportController extends Controller
             : ($withHeader ? 4 : ($labSetting->print_bottom_margin ?? 20));
 
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
-
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
@@ -227,13 +211,10 @@ class ReportController extends Controller
 
         return response()->file($fullPath, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="Print_Report_'.$order->accession_no.'_v'.$report->version.'.pdf"',
+            'Content-Disposition' => 'inline; filename="Print_Report_' . $order->accession_no . '_v' . $report->version . '.pdf"',
         ]);
     }
 
-    /**
-     * Download Diagnostic Report PDF (full letterhead header and footer included).
-     */
     public function downloadPdf(LabOrder $order, Request $request): BinaryFileResponse|Response
     {
         if ($request->boolean('print') || $request->input('mode') === 'print') {
@@ -251,12 +232,9 @@ class ReportController extends Controller
             ? $order->reports()->where('version', $version)->first()
             : $order->latestReport;
 
-        if (! $report) {
+        if (!$report) {
             $report = LabReport::firstOrCreate(
-                [
-                    'lab_order_id' => $order->id,
-                    'version' => 1,
-                ],
+                ['lab_order_id' => $order->id, 'version' => 1],
                 [
                     'template' => 'standard',
                     'verified_by' => $order->ordered_by ?: 1,
@@ -268,19 +246,29 @@ class ReportController extends Controller
         $report->loadMissing(['verifiedByUser']);
 
         $selectedItemId = $request->input('item_id') ? (int) $request->input('item_id') : null;
-
         $labSetting = LabSetting::current();
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
 
-        // Download always includes header and footer
+        $hasHeader = !empty($labSetting->getHeaderImageUri());
+        $hasFooter = !empty($labSetting->getFooterImageUri());
+
+        $topMargin = $request->has('top_margin')
+            ? (int) $request->input('top_margin')
+            : ($hasHeader ? 0 : ($labSetting->print_top_margin ?? 35));
+
+        $bottomMargin = $request->has('bottom_margin')
+            ? (int) $request->input('bottom_margin')
+            : ($hasFooter ? 0 : ($labSetting->print_bottom_margin ?? 20));
+
+        // Download mode: with letterhead header and footer images IF uploaded
         $res = $this->reportRenderer->renderAndStorePdf(
             $order,
             $report,
-            true, // withLetterhead = true
-            null, // standard top margin (8mm)
-            null, // standard bottom margin (8mm)
+            true,
+            $topMargin,
+            $bottomMargin,
             'download',
             $selectedItemId,
             $combineReports
@@ -288,7 +276,6 @@ class ReportController extends Controller
 
         $fullPath = Storage::disk('local')->path($res['path']);
 
-        // Audit PDF download read access
         LabOrderEvent::create([
             'order_id' => $order->id,
             'from_state' => $order->status->value ?? LabState::RELEASED->value,
@@ -302,15 +289,16 @@ class ReportController extends Controller
             ],
         ]);
 
-        return response()->download($fullPath, "LabReport_{$order->accession_no}_v{$report->version}.pdf", [
-            'Content-Type' => 'application/pdf',
-            'X-Report-SHA256' => (string) $res['sha256'],
-        ]);
+        return response()->download(
+            $fullPath,
+            "LabReport_{$order->accession_no}_v{$report->version}.pdf",
+            [
+                'Content-Type' => 'application/pdf',
+                'X-Report-SHA256' => (string) $res['sha256'],
+            ]
+        );
     }
 
-    /**
-     * Amend released report.
-     */
     public function amend(LabOrder $order, Request $request): JsonResponse
     {
         $request->validate([
@@ -319,6 +307,7 @@ class ReportController extends Controller
 
         $user = $request->user();
         $userId = $user ? (int) $user->id : 1;
+
         $newReport = $this->amendReport->execute(
             $order->id,
             $userId,
@@ -333,14 +322,12 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Send report via WhatsApp (queued / throttled).
-     */
     public function sendWhatsApp(LabOrder $order, Request $request): JsonResponse
     {
         $order->loadMissing(['patient', 'latestReport']);
+
         $phone = $order->patient?->mobile_no;
-        if (! $phone) {
+        if (!$phone) {
             return response()->json([
                 'success' => false,
                 'message' => 'Patient has no registered phone number for WhatsApp.',
@@ -348,12 +335,9 @@ class ReportController extends Controller
         }
 
         $report = $order->latestReport;
-        if (! $report && in_array($order->status, [LabState::RELEASED, LabState::VERIFIED])) {
+        if (!$report && in_array($order->status, [LabState::RELEASED, LabState::VERIFIED])) {
             $report = LabReport::firstOrCreate(
-                [
-                    'lab_order_id' => $order->id,
-                    'version' => 1,
-                ],
+                ['lab_order_id' => $order->id, 'version' => 1],
                 [
                     'template' => 'standard',
                     'verified_by' => $order->ordered_by ?: 1,
@@ -362,14 +346,13 @@ class ReportController extends Controller
             );
         }
 
-        if (! $report) {
+        if (!$report) {
             return response()->json([
                 'success' => false,
                 'message' => 'No released report found.',
             ], 422);
         }
 
-        // Audit dispatch
         LabOrderEvent::create([
             'order_id' => $order->id,
             'from_state' => LabState::RELEASED->value,
@@ -389,9 +372,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Public signed URL verification view (for QR code scans).
-     */
     public function verifyPublic(LabOrder $order, int|string $version): View
     {
         $version = (int) $version;

@@ -107,6 +107,11 @@ class LabSettingController extends Controller
                 $ext = $file->getClientOriginalExtension() ?: 'png';
                 $filename = "{$inputKey}_" . time() . '_' . substr(md5(uniqid()), 0, 6) . ".{$ext}";
                 $file->move($uploadDir, $filename);
+                $storageLabDir = storage_path('app/public/assets/files/lab');
+                if (!File::exists($storageLabDir)) {
+                    File::makeDirectory($storageLabDir, 0755, true);
+                }
+                @copy($uploadDir . '/' . $filename, $storageLabDir . '/' . $filename);
                 $validated[$dbCol] = "assets/files/lab/{$filename}";
             }
         }
@@ -117,7 +122,7 @@ class LabSettingController extends Controller
         $validated['combine_reports_on_print'] = $request->boolean('combine_reports_on_print', false);
         if ($request->hasFile('header_image') || $request->hasFile('footer_image')) {
             $validated['use_letterhead_image'] = true;
-            $validated['print_with_header'] = true;
+            $validated['print_with_header'] = $request->boolean('print_with_header', false);
         } else {
             $validated['use_letterhead_image'] = $request->boolean('use_letterhead_image', false);
             $validated['print_with_header'] = $request->boolean('print_with_header', false);
@@ -255,6 +260,11 @@ class LabSettingController extends Controller
             $ext = $file->getClientOriginalExtension() ?: 'png';
             $filename = "header_image_" . time() . '_' . substr(md5(uniqid()), 0, 6) . ".{$ext}";
             $file->move($uploadDir, $filename);
+            $storageLabDir = storage_path('app/public/assets/files/lab');
+            if (!File::exists($storageLabDir)) {
+                File::makeDirectory($storageLabDir, 0755, true);
+            }
+            @copy($uploadDir . '/' . $filename, $storageLabDir . '/' . $filename);
             $validated['header_image_path'] = "assets/files/lab/{$filename}";
             $validated['use_letterhead_image'] = true;
         }
@@ -264,12 +274,17 @@ class LabSettingController extends Controller
             $ext = $file->getClientOriginalExtension() ?: 'png';
             $filename = "footer_image_" . time() . '_' . substr(md5(uniqid()), 0, 6) . ".{$ext}";
             $file->move($uploadDir, $filename);
+            $storageLabDir = storage_path('app/public/assets/files/lab');
+            if (!File::exists($storageLabDir)) {
+                File::makeDirectory($storageLabDir, 0755, true);
+            }
+            @copy($uploadDir . '/' . $filename, $storageLabDir . '/' . $filename);
             $validated['footer_image_path'] = "assets/files/lab/{$filename}";
         }
 
         if ($request->hasFile('header_image') || $request->hasFile('footer_image')) {
             $validated['use_letterhead_image'] = true;
-            $validated['print_with_header'] = true;
+            $validated['print_with_header'] = $request->boolean('print_with_header', false);
         } else {
             $validated['print_with_header'] = $request->boolean('print_with_header', false);
             if ($request->has('use_letterhead_image')) {

@@ -36,8 +36,11 @@
     $pathologistSignUri = $isApproved ? $labSetting->getPathologistSignUri() : '';
 
     // Top and Bottom Margins (configured in mm)
-    $effectiveTopMargin = $topMargin ?? ($withLetterhead ? 4 : ($labSetting->print_top_margin ?? 35));
-    $effectiveBottomMargin = $bottomMargin ?? ($withLetterhead ? 4 : ($labSetting->print_bottom_margin ?? 20));
+    $hasHeaderImage = $withLetterhead && $labSetting->use_letterhead_image && !empty($headerImageUri);
+    $hasFooterImage = $withLetterhead && $labSetting->use_letterhead_image && !empty($footerImageUri);
+    $effectiveTopMargin = isset($topMargin) ? $topMargin : ($hasHeaderImage ? 0 : ($withLetterhead ? 4 : ($labSetting->print_top_margin ?? 35)));
+    $effectiveBottomMargin = isset($bottomMargin) ? $bottomMargin : ($hasFooterImage ? 0 : ($withLetterhead ? 4 : ($labSetting->print_bottom_margin ?? 20)));
+    $pdfPageHeight = max(180, 297 - $effectiveTopMargin - $effectiveBottomMargin - 2);
 
     // Filter Items to Report (Exclude cancelled, support specific selected item)
     $reportItems = $order->items->filter(function ($item) {
@@ -222,37 +225,17 @@
         .page-break {
             display: none;
         }
-        @else
-        .report-page {
-            width: 100%;
-            min-height: 255mm;
-            margin: 0;
-            padding: 0 0 20mm 0;
-            position: relative;
-            box-sizing: border-box;
-            page-break-inside: avoid;
-        }
-        .report-bottom-block {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            page-break-inside: avoid;
-        }
-        .page-break {
-            page-break-after: always;
-            break-after: page;
-            height: 0;
-            line-height: 0;
-            clear: both;
-        }
-        @endif
 
         @media print {
             .no-print {
                 display: none !important;
             }
+            @if(! $withLetterhead)
+            .report-header-graphic,
+            .report-footer-graphic {
+                display: none !important;
+            }
+            @endif
             body {
                 background: #ffffff !important;
                 margin: 0 !important;
@@ -264,13 +247,12 @@
             .report-page {
                 background: #ffffff !important;
                 max-width: 100% !important;
-                min-height: 255mm !important;
                 margin: 0 !important;
-                padding: 0 0 20mm 0 !important;
+                padding: 0 !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
                 position: relative !important;
-                page-break-inside: avoid !important;
+                height: {{ $pdfPageHeight }}mm !important;
             }
             .report-bottom-block {
                 position: absolute !important;
@@ -289,6 +271,31 @@
                 clear: both !important;
             }
         }
+        @else
+        .report-page {
+            width: 100%;
+            height: {{ $pdfPageHeight }}mm;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .report-bottom-block {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            page-break-inside: avoid;
+        }
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+            height: 0;
+            line-height: 0;
+            clear: both;
+        }
+        @endif
 
         /* Demographic Box */
         .patient-demographic-box {
@@ -382,11 +389,11 @@
         }
 
         .report-results-table tbody tr.param-row td {
-            padding: 2px 5px;
-            font-size: 11px;
+            padding: 1.5px 5px;
+            font-size: 10px;
             vertical-align: middle;
             border: none;
-            line-height: 1.25;
+            line-height: 1.2;
             font-weight: normal;
         }
 
@@ -492,6 +499,15 @@
                     @endif
                 </td>
                 <td style="text-align: right; vertical-align: middle; padding: 6px 10px;">
+                    @if($withLetterhead)
+                        <a href="{{ request()->fullUrlWithQuery(['letterhead' => 0]) }}" style="background: #334155; color: #f8fafc; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-right: 6px; display: inline-block;" title="Preview without Header & Footer (for pre-printed letterhead stationery)">
+                            Letterhead: ON
+                        </a>
+                    @else
+                        <a href="{{ request()->fullUrlWithQuery(['letterhead' => 1]) }}" style="background: #334155; color: #94a3b8; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; margin-right: 6px; display: inline-block;" title="Preview with Header & Footer banners">
+                            Letterhead: OFF
+                        </a>
+                    @endif
                     <button type="button" onclick="window.print()" style="background: #475569; color: #ffffff; border: none; padding: 5px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; margin-right: 6px;">
                         🖨️ Browser Print
                     </button>
@@ -790,7 +806,7 @@
                     {{-- Lab Footer (Letterhead Graphic Banner or Computerized Lab Footer) --}}
                     @if($withLetterhead)
                         @if($labSetting->use_letterhead_image && $footerImageUri)
-                            <div class="report-footer-graphic" style="width: 100%; margin-top: 8px; text-align: center; page-break-inside: avoid;">
+                            <div class="report-footer-graphic" style="width: 100%; margin-top: 4px; text-align: center; page-break-inside: avoid;">
                                 <img src="{{ $footerImageUri }}" alt="Footer Letterhead" style="width: 100%; max-height: {{ $labSetting->footer_height ?? 60 }}px;">
                             </div>
                         @else

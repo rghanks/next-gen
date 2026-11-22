@@ -79,8 +79,10 @@ class ReportRenderer
         $qrCodeUri = $this->generateQrCodeUri($verifyUrl);
 
         $labSetting = \App\Models\LabSetting::current();
-        $topMargin = $topMargin ?? ($withLetterhead ? 4 : ($labSetting->print_top_margin ?? 35));
-        $bottomMargin = $bottomMargin ?? ($withLetterhead ? 4 : ($labSetting->print_bottom_margin ?? 20));
+        $hasHeader = $withLetterhead && !empty($labSetting->getHeaderImageUri());
+        $hasFooter = $withLetterhead && !empty($labSetting->getFooterImageUri());
+        $topMargin = $topMargin ?? ($hasHeader ? 0 : ($withLetterhead ? 4 : ($labSetting->print_top_margin ?? 35)));
+        $bottomMargin = $bottomMargin ?? ($hasFooter ? 0 : ($withLetterhead ? 4 : ($labSetting->print_bottom_margin ?? 20)));
         $combineReports = $combineReports ?? (bool) ($labSetting->combine_reports_on_print ?? false);
 
         /** @var view-string $viewName */

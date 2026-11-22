@@ -3,6 +3,7 @@
 /public/build
 /public/hot
 /public/storage
+/public/assets/files/*
 /storage/*.key
 /storage/license/*private*.key
 /storage/license/.sys_state

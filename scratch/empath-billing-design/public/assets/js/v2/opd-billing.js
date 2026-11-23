@@ -1,6 +1,6 @@
 /**
- * Empath HIMS - OPD Billing V2 Module
- * Dedicated modular JavaScript for OPD Billing & All Bills
+ * Empath HIMS - Billing V2 Module
+ * Dedicated modular JavaScript for Billing & All Bills
  * Follows Pure jQuery standard and V2 Design System guidelines
  */
 (function ($) {
@@ -1426,7 +1426,7 @@
   function closeSvc() {
     var $ul = $('#svc-list'), $q = $('#svc-q');
     $q.removeAttr('aria-activedescendant');
-    // The service catalogue stays visible below the bill, like legacy OPD billing.
+    // The service catalogue stays visible below the bill, like legacy Billing.
     if ($('#sec-bill').is(':visible')) return;
     $ul.attr('hidden', true);
     $q.attr('aria-expanded', 'false');
@@ -3581,10 +3581,10 @@
   // ══════════════════════════════════════════════════════════════════════
 
   var RF_ST_META = {
-    pending:  { t: 'Pending',   cls: 'pill-info' },
-    approved: { t: 'Approved',  cls: 'pill-info' },
-    issued:   { t: 'Completed', cls: 'pill-ok' },
-    rejected: { t: 'Rejected',  cls: 'pill-err' }
+    pending: { t: 'Pending', cls: 'pill-info' },
+    approved: { t: 'Approved', cls: 'pill-info' },
+    issued: { t: 'Completed', cls: 'pill-ok' },
+    rejected: { t: 'Rejected', cls: 'pill-err' }
   };
 
   function isOpenRefund(st) {
@@ -3679,9 +3679,9 @@
 
     var html = count > 0
       ? '<span><b>' + count + '</b> ' + (count === 1 ? 'refund' : 'refunds') + '</span>' +
-        '<span>Refunded <b>' + inr(total) + '</b></span>' +
-        (waitCount ? '<span>Awaiting approval <b>' + waitCount + ' · ' + inr(waitSum) + '</b></span>' : '') +
-        (giveCount ? '<span>Approved, to issue <b>' + giveCount + ' · ' + inr(giveSum) + '</b></span>' : '')
+      '<span>Refunded <b>' + inr(total) + '</b></span>' +
+      (waitCount ? '<span>Awaiting approval <b>' + waitCount + ' · ' + inr(waitSum) + '</b></span>' : '') +
+      (giveCount ? '<span>Approved, to issue <b>' + giveCount + ' · ' + inr(giveSum) + '</b></span>' : '')
       : '';
 
     $('#rf-sum').html(html);
@@ -4281,15 +4281,15 @@
     var againstStr = ' · ' + refund.mode + ' · against ' + billsText;
 
     var headMap = {
-      pending:  'Refund R' + refund.refund_no + ' sent to admin for approval',
+      pending: 'Refund R' + refund.refund_no + ' sent to admin for approval',
       approved: 'Refund R' + refund.refund_no + ' approved — ready to issue',
-      issued:   inr(refund.amount) + ' refunded to ' + who,
+      issued: inr(refund.amount) + ' refunded to ' + who,
       rejected: 'Refund R' + refund.refund_no + ' rejected'
     };
     var subMap = {
-      pending:  inr(refund.amount) + ' to ' + who + againstStr + '. The amount is held on the bill until the admin approves or rejects it.',
+      pending: inr(refund.amount) + ' to ' + who + againstStr + '. The amount is held on the bill until the admin approves or rejects it.',
       approved: 'Approved by ' + (refund.approved_by || 'Hospital Admin') + '. Hand ' + inr(refund.amount) + ' to ' + who + ' and issue it here.',
-      issued:   'Refund R' + refund.refund_no + againstStr + '.',
+      issued: 'Refund R' + refund.refund_no + againstStr + '.',
       rejected: 'Rejected by ' + (refund.rejected_by || 'Hospital Admin') + (refund.rejected_why ? (': “' + refund.rejected_why + '”') : '') + '. ' + inr(refund.amount) + ' is back on the bill as refundable.'
     };
 

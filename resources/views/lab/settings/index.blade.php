@@ -467,7 +467,7 @@
                         <div class="col-md-12">
                             <label class="field-label">Receipt Footer Note</label>
                             <textarea name="receipt_footer_note" rows="2" class="form-control form-control-sm" placeholder="Note displayed on OPD payment receipts...">{{ old('receipt_footer_note', $setting->receipt_footer_note) }}</textarea>
-                            <small class="text-muted" style="font-size: 10px;">Printed at the bottom of OPD billing payment receipts.</small>
+                            <small class="text-muted" style="font-size: 10px;">Printed at the bottom of Billing payment receipts.</small>
                         </div>
                     </div>
                 </div>

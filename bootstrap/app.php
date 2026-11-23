@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->redirectTo(
+            guests: '/login',
+            users: '/lab/billing',
+        );
         $middleware->web(append: [
             \App\Http\Middleware\VerifyLicense::class,
         ]);

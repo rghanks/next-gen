@@ -736,9 +736,9 @@
                         </div>
                     </div>
 
-                    <!-- Main Billing Split Grid (Exact OPD Billing Workspace Layout) -->
+                    <!-- Main Billing Split Grid (Exact Billing Workspace Layout) -->
                     <div class="billing-split-grid">
-                        <!-- Left: Investigation Table & Catalog (Exact OPD Billing Component) -->
+                        <!-- Left: Investigation Table & Catalog (Exact Billing Component) -->
                         <div class="pro-card investigations-card">
                             <!-- Table of Billed Services -->
                             <div class="investigations-table-container">
@@ -802,7 +802,7 @@
                             </div>
                         </div>
 
-                        <!-- Right: Payment & Settlement Panel (Exact OPD Billing Component) -->
+                        <!-- Right: Payment & Settlement Panel (Exact Billing Component) -->
                         <div class="payment-panel">
                             <div class="payment-panel-header">
                                 <h6 class="payment-panel-title mb-0">Payment Settlement</h6>
@@ -1115,7 +1115,7 @@
         });
     };
 
-    // Render Active Services Table (Exact OPD Billing investigations-table layout with live editable test names)
+    // Render Active Services Table (Exact Billing investigations-table layout with live editable test names)
     function renderServicesTable() {
         const activeItems = servicesDraft.filter(it => !it.is_removed);
 
@@ -1222,7 +1222,7 @@
         $('#modalPaymentsTbody').html(html);
     }
 
-    // Dynamic Financial Calculations (Exact OPD Billing Settlement Engine)
+    // Dynamic Financial Calculations (Exact Billing Settlement Engine)
     function calculateFinancials() {
         let gross = 0.0;
         servicesDraft.forEach(it => {

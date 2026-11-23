@@ -1,4 +1,4 @@
-/* ══════ OPD billing, standalone ══════ */
+/* ══════ Billing, standalone ══════ */
 /* New bill and All bills: underlined tabs at the start of the bar */
 .topbar .ob-tabs{display:flex; align-items:stretch; align-self:stretch; flex:none;
   margin-block:calc(-1 * var(--md-sys-spacing-2)); margin-bottom:-1px; margin-left:calc(-1 * var(--md-sys-spacing-5))}

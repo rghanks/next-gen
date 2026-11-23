@@ -6245,7 +6245,7 @@ public function get_consultcharges($doc, $uhid = 0)
         if (!$user->can('module-permission', ['opd_billing', 'can_update'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'You do not have permission to edit receipts. OPD billing update permission is required.'
+                'message' => 'You do not have permission to edit receipts. Billing update permission is required.'
             ], 403);
         }
 
@@ -23790,7 +23790,7 @@ $medicines = DB::table('pres_final as d')
         }
 
         if ($request->action == 'edit_bill' && !$user->can('module-permission', ['opd_billing', 'can_update'])) {
-            return response()->json(['status' => 'error', 'message' => 'You do not have permission to edit bills. OPD billing update permission is required.'], 403);
+            return response()->json(['status' => 'error', 'message' => 'You do not have permission to edit bills. Billing update permission is required.'], 403);
         }
 
         if ($request->action == 'edit_bill' && !empty($request->bill_no)) {
@@ -23815,11 +23815,11 @@ $medicines = DB::table('pres_final as d')
 
         if (!$hasBillingPermission) {
             if ($request->action == 'edit_bill' || $request->action2 == 'gen_bill_from_draft') {
-                return response()->json(['status' => 'error', 'message' => 'You do not have permission to edit or generate bills. OPD billing permission is required.'], 403);
+                return response()->json(['status' => 'error', 'message' => 'You do not have permission to edit or generate bills. Billing permission is required.'], 403);
             }
 
             if (empty($request->add_visit)) {
-                return response()->json(['status' => 'error', 'message' => 'You do not have permission to create bills without a visit. OPD billing permission is required.'], 403);
+                return response()->json(['status' => 'error', 'message' => 'You do not have permission to create bills without a visit. Billing permission is required.'], 403);
             }
 
             if ($request->filled('service_id') && is_array($request->service_id)) {
@@ -23829,7 +23829,7 @@ $medicines = DB::table('pres_final as d')
                 $extraServices = array_diff($nonEmptyServices, $allowedServiceIds);
 
                 if (count($extraServices) > 0) {
-                    return response()->json(['status' => 'error', 'message' => 'You do not have permission to add services to the bill. OPD billing permission is required.'], 403);
+                    return response()->json(['status' => 'error', 'message' => 'You do not have permission to add services to the bill. Billing permission is required.'], 403);
                 }
             }
         }

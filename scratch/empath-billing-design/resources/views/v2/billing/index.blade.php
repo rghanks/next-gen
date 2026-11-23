@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Empath HIMS OPD Billing</title>
+  <title>Empath HIMS Billing</title>
   
     <!-- App favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/images/logos.png')}}">
@@ -40,7 +40,7 @@
 <body class="billing-classic">
   @include('admin.patient.includes.nav_actions')
 
-  <a class="skip" href="#view-new">Skip to OPD Billing</a>
+  <a class="skip" href="#view-new">Skip to Billing</a>
 
   <div class="app" id="app">
 
@@ -49,8 +49,8 @@
         <x-slot:left><nav class="billing-main-nav" aria-label="Patient navigation">@yield('nav-actions')</nav></x-slot:left>
       </x-v2.topbar>
       <div class="billing-pagebar">
-        <h1><i class="uil uil-file-alt" aria-hidden="true"></i>OPD Billing</h1>
-        <div class="ob-tabs" role="tablist" aria-label="OPD billing sections">
+        <h1><i class="uil uil-file-alt" aria-hidden="true"></i>Billing</h1>
+        <div class="ob-tabs" role="tablist" aria-label="Billing sections">
           @php
            $can_create_bill   = auth()->user()->can('module-permission', ['opd_billing', 'can_create']);
            $can_read_bill     = auth()->user()->can('module-permission', ['opd_billing', 'can_read']);

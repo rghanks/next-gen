@@ -117,7 +117,7 @@ change(view, '<x-v2.registration.visit-step mode="billing" stepNumber="" title="
                 </div>
               </section>
               <x-v2.registration.visit-step mode="billing" stepNumber="2" title="Visit" :billingWorkflow="true" />''')
-change(view, '<x-v2.registration.billing-step stepNumber="" title="OPD billing"', '<x-v2.registration.billing-step stepNumber="3" title="OPD billing"')
+change(view, '<x-v2.registration.billing-step stepNumber="" title="Billing"', '<x-v2.registration.billing-step stepNumber="3" title="Billing"')
 change(view, "      saveVisit: \"{{ route('visit.save') }}\",", "      saveVisit: \"{{ route('visit.save') }}\",\n      registerBillingPatient: \"{{ route('v2.billing.register_patient') }}\",\n      prepareBillingVisit: \"{{ route('v2.billing.prepare_visit') }}\",\n      saveBillingWorkflow: \"{{ route('v2.billing.save') }}\",\n      checkDuplicateMobile: \"{{ route('registration.check_duplicate_mobile') }}\",")
 change(view, '  <script src="{{ asset(\'assets/js/v2/opd-billing.js\') }}', '  <script src="{{ asset(\'assets/js/v2/billing-patient.js\') }}?v={{ time() }}" charset="utf-8"></script>\n  <script src="{{ asset(\'assets/js/v2/opd-billing.js\') }}')
 

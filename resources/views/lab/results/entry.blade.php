@@ -1,6 +1,6 @@
 @extends('lab.layouts.app')
 
-@section('title', 'Result Entry #' . $order->accession_no . ' | Rahul Clinic & Laboratory')
+@section('title', 'Result Entry #' . $order->accession_no . ' | ')
 @section('context', 'results')
 
 @push('styles')

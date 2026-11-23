@@ -56,7 +56,7 @@ class LicenseGenerate extends Command
         // 2. Client Name
         $client = $this->option('client');
         if (empty($client)) {
-            $client = $this->ask('Enter Client / Laboratory Name', 'Rahul Clinic & Laboratory');
+            $client = $this->ask('Enter Client / Laboratory Name', '');
         }
 
         // 3. Machine ID

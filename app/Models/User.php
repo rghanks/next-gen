@@ -24,6 +24,9 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'active',
+        'is_superadmin',
+        'is_doctor',
     ];
 
     /**
@@ -46,6 +49,17 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'active' => 'boolean',
+            'is_superadmin' => 'boolean',
+            'is_doctor' => 'boolean',
         ];
+    }
+
+    /**
+     * Determine if the user is active and allowed to log in.
+     */
+    public function isActive(): bool
+    {
+        return (bool) $this->active;
     }
 }

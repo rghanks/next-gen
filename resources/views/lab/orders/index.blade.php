@@ -1,6 +1,6 @@
 @extends('lab.layouts.app')
 
-@section('title', 'Lab Test Orders & Worklist | Rahul Clinic & Laboratory')
+@section('title', 'Lab Test Orders & Worklist | ')
 @section('context', 'orders')
 
 @push('styles')

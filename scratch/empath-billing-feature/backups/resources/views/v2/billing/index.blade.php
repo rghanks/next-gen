@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Empath HIMS OPD Billing</title>
+  <title>Empath HIMS Billing</title>
   
     <!-- App favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/images/logos.png')}}">
@@ -37,14 +37,14 @@
 </head>
 <body>
 
-  <a class="skip" href="#view-new">Skip to OPD Billing</a>
+  <a class="skip" href="#view-new">Skip to Billing</a>
 
   <div class="app" id="app">
     <x-v2.side-menu active="billing" mode="rail" />
 
     <div class="main">
       <x-v2.topbar :show-hospital-name="false">
-        <div class="ob-tabs" role="tablist" aria-label="OPD billing sections">
+        <div class="ob-tabs" role="tablist" aria-label="Billing sections">
           @php
            $can_create_bill   = auth()->user()->can('module-permission', ['opd_billing', 'can_create']);
            $can_read_bill     = auth()->user()->can('module-permission', ['opd_billing', 'can_read']);
@@ -177,8 +177,8 @@
                 $initialData['disc_auth_users'] = $discAuthUsers;
               @endphp
 
-              <!-- Reused OPD Billing Component -->
-              <x-v2.registration.billing-step stepNumber="" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
+              <!-- Reused Billing Component -->
+              <x-v2.registration.billing-step stepNumber="" title="Billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
 
               <!-- Cancellation Panel -->
               <section class="panel sec sec-x" id="sec-cancel" aria-labelledby="t-cancel" hidden>

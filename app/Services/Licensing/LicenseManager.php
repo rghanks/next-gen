@@ -98,7 +98,7 @@ class LicenseManager
     /**
      * Vendor tool: Issue and cryptographically sign a new license.
      *
-     * @param string $clientName e.g. "Rahul Clinic & Laboratory"
+     * @param string $clientName e.g. ""
      * @param string $machineId e.g. "F500-AD79-0D79-F9A4"
      * @param string $expiresAt e.g. "2027-12-31 23:59:59"
      * @param string $privateKeyPem The RSA private key PEM string

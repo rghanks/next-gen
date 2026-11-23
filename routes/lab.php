@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Lab\AuditController;
 use App\Http\Controllers\Lab\BillingController;
+use App\Http\Controllers\Lab\DashboardController;
 use App\Http\Controllers\Lab\LabOrderDeskController;
 use App\Http\Controllers\Lab\LabSettingController;
 use App\Http\Controllers\Lab\ReportController;
@@ -20,8 +21,12 @@ Route::prefix('lab')->name('lab.')->group(function () {
         ->name('reports.verify-public')
         ->middleware('signed');
 
-    // Web Views & APIs (grouped under web middleware, optional auth for local testing)
-    Route::middleware(['web'])->group(function () {
+    // Web Views & APIs (protected by web and auth middleware)
+    Route::middleware(['web', 'auth'])->group(function () {
+
+        // System Overview Dashboard
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('api/dashboard/stats', [DashboardController::class, 'apiStats'])->name('api.dashboard.stats');
 
         // A. Billing Desk
         Route::get('/', fn () => redirect()->route('lab.billing.index'));

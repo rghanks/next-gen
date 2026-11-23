@@ -20,7 +20,7 @@ use App\Cache\HospitalServiceCache;
 class BillingController extends Controller
 {
     /**
-     * V2 OPD Billing Main Interface
+     * V2 Billing Main Interface
      * Supports Tab 1: New Bill & Tab 2: All Bills
      */
     public function index(Request $request)
@@ -889,7 +889,7 @@ class BillingController extends Controller
             return response()->json([
                 'status' => 'error',
                 'success' => false,
-                'message' => 'You do not have permission to edit receipts. OPD billing or refund update permission is required.'
+                'message' => 'You do not have permission to edit receipts. Billing or refund update permission is required.'
             ], 403);
         }
 
@@ -984,7 +984,7 @@ class BillingController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'success' => false,
-                    'message' => 'You do not have permission to edit payment collection receipts. OPD billing update permission is required.'
+                    'message' => 'You do not have permission to edit payment collection receipts. Billing update permission is required.'
                 ], 403);
             }
 

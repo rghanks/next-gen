@@ -1,13 +1,14 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="csrf-token" content="">
-  <title>Empath HIMS OPD Billing</title>
-  
-    <!-- App favicon -->
-    <link rel="icon" type="image/png" href="http://127.0.0.1:8098/assets/images/logos.png">
+  <title>Empath HIMS Billing</title>
+
+  <!-- App favicon -->
+  <link rel="icon" type="image/png" href="http://127.0.0.1:8098/assets/images/logos.png">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="http://127.0.0.1:8098/assets/css/v2/registration.css?v=1794638078">
   <link rel="stylesheet" href="http://127.0.0.1:8098/assets/css/v2/nav-shell.css?v=1794551009">
@@ -20,9 +21,11 @@
       padding-top: env(safe-area-inset-top, 0px);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
+
     html {
       scroll-padding-top: env(safe-area-inset-top, 0px);
     }
+
     body {
       margin: 0;
       padding: 0;
@@ -30,527 +33,663 @@
       background: var(--md-sys-color-surface, #f8f8f8);
       color: var(--md-sys-color-on-surface, #030303);
     }
+
     [hidden]:not([hidden=until-found i]) {
       display: none !important;
     }
   </style>
 </head>
+
 <body>
 
-  <a class="skip" href="#view-new">Skip to OPD Billing</a>
+  <a class="skip" href="#view-new">Skip to Billing</a>
 
   <div class="app" id="app">
     <aside aria-label="Test fixture">Billing test</aside>
     <div class="main">
-      <header class="topbar"><div class="ob-tabs" role="tablist" aria-label="OPD billing sections">
-             
-                    <button type="button" role="tab" id="tab-new" aria-selected="true" aria-controls="view-new">New bill</button>
-            
-                    <button type="button" role="tab" id="tab-all" aria-selected="false" aria-controls="view-all">All bills</button>
-                            </div></header>
-            
-        <!-- ═════════════ TAB 1: NEW BILL ═════════════ -->
-        <section id="view-new" role="tabpanel" aria-labelledby="tab-new" >
-          <!-- Patient search / finder with Advanced Search -->
-          <div class="finder" id="finder">
-    
-    <form id="find-form" role="search" autocomplete="off" aria-label="Search patient">
-        <div class="find-row">
-            <div class="field" data-field="q">
+      <header class="topbar">
+        <div class="ob-tabs" role="tablist" aria-label="Billing sections">
+
+          <button type="button" role="tab" id="tab-new" aria-selected="true" aria-controls="view-new">New bill</button>
+
+          <button type="button" role="tab" id="tab-all" aria-selected="false" aria-controls="view-all">All
+            bills</button>
+        </div>
+      </header>
+
+      <!-- ═════════════ TAB 1: NEW BILL ═════════════ -->
+      <section id="view-new" role="tabpanel" aria-labelledby="tab-new">
+        <!-- Patient search / finder with Advanced Search -->
+        <div class="finder" id="finder">
+
+          <form id="find-form" role="search" autocomplete="off" aria-label="Search patient">
+            <div class="find-row">
+              <div class="field" data-field="q">
                 <label for="q">Search patient</label>
                 <div class="search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
-                    <input id="q" type="text" enterkeyhint="search" autocomplete="off" placeholder="Search UHID, phone number, ABHA ID or name" aria-describedby="q-help">
-                                            <kbd aria-hidden="true">/</kbd>
-                                    </div>
-                <span class="help sr" id="q-help">Results appear below. Use the down arrow to move into them and Enter to open one.</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+                    aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" />
+                    <path d="M16 16l4 4" />
+                  </svg>
+                  <input id="q" type="text" enterkeyhint="search" autocomplete="off"
+                    placeholder="Search UHID, phone number, ABHA ID or name" aria-describedby="q-help">
+                  <kbd aria-hidden="true">/</kbd>
+                </div>
+                <span class="help sr" id="q-help">Results appear below. Use the down arrow to move into them and Enter
+                  to open one.</span>
+              </div>
+              <button type="submit" class="btn btn-filled">Search</button>
+              <button type="button" class="btn btn-text" id="adv-btn" aria-expanded="false"
+                aria-controls="adv">Advanced<span id="adv-count" hidden></span><span class="kbd">Alt F</span></button>
             </div>
-            <button type="submit" class="btn btn-filled">Search</button>
-            <button type="button" class="btn btn-text" id="adv-btn" aria-expanded="false" aria-controls="adv">Advanced<span id="adv-count" hidden></span><span class="kbd">Alt F</span></button>
-        </div>
 
-        <div class="adv" id="adv" hidden>
-            <div class="field" data-field="a-name">
+            <div class="adv" id="adv" hidden>
+              <div class="field" data-field="a-name">
                 <label for="a-name">Name</label>
                 <input id="a-name" type="text" autocomplete="off" placeholder="Any part of the name">
-            </div>
-            <div class="field" data-field="a-phone">
+              </div>
+              <div class="field" data-field="a-phone">
                 <label for="a-phone">Phone number</label>
                 <div class="affix"><span class="prefix">+91</span>
-                    <input id="a-phone" type="tel" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="10 digits">
+                  <input id="a-phone" type="tel" inputmode="numeric" maxlength="10" autocomplete="off"
+                    placeholder="10 digits">
                 </div>
-            </div>
-            <div class="field" data-field="a-gender">
+              </div>
+              <div class="field" data-field="a-gender">
                 <label for="a-gender">Gender</label>
                 <select id="a-gender">
-                    <option value="">Any</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Transgender">Transgender</option>
-                    <option value="Other">Other</option>
+                  <option value="">Any</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Transgender">Transgender</option>
+                  <option value="Other">Other</option>
                 </select>
-            </div>
-            <div class="f-btns">
+              </div>
+              <div class="f-btns">
                 <button type="submit" class="btn btn-tonal">Search</button>
                 <button type="button" class="btn btn-text" id="adv-clear">Clear</button>
+              </div>
             </div>
+          </form>
+          <div class="results" id="results" hidden role="listbox" aria-label="Patients found"></div>
         </div>
-    </form>
-    <div class="results" id="results" hidden role="listbox" aria-label="Patients found"></div>
-</div>
 
 
-          <div class="ob-work">
-            <section class="panel sec" id="billing-patient" aria-labelledby="billing-patient-title">
-  <div class="sec-head">
-    <h2 class="sec-title" id="billing-patient-title"><span class="sec-n" aria-hidden="true">1</span>Patient</h2>
-    <div class="sec-actions">
-            <button type="button" class="btn btn-outlined" id="billing-new-patient">Register new patient</button>
+        <div class="ob-work">
+          <section class="panel sec" id="billing-patient" aria-labelledby="billing-patient-title">
+            <div class="sec-head">
+              <h2 class="sec-title" id="billing-patient-title"><span class="sec-n" aria-hidden="true">1</span>Patient
+              </h2>
+              <div class="sec-actions">
+                <button type="button" class="btn btn-outlined" id="billing-new-patient">Register new patient</button>
+              </div>
+            </div>
+            <div class="sec-body">
+              <p id="billing-patient-hint">Search above to select an existing patient, or register a new patient here.
+              </p>
+              <form id="billing-register" hidden novalidate>
+                <div class="grid4">
+                  <div class="field" data-field="prefix">
+                    <label for="br-prefix">Title<span class="req">*</span></label>
+                    <select id="br-prefix" name="prefix" required>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Baby">Baby</option>
+                    </select>
+                    <span class="err" data-error="prefix" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="Fname">
+                    <label for="br-first">First name<span class="req">*</span></label>
+                    <input id="br-first" name="Fname" type="text" maxlength="100" autocomplete="off" required>
+                    <span class="err" data-error="Fname" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="Lname">
+                    <label for="br-last">Last name<span class="opt">Optional</span></label>
+                    <input id="br-last" name="Lname" type="text" maxlength="100" autocomplete="off">
+                    <span class="err" data-error="Lname" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="mobile_no">
+                    <label for="br-mobile">Mobile number<span class="req">*</span></label>
+                    <input id="br-mobile" name="mobile_no" type="tel" inputmode="numeric" pattern="[0-9]{10}"
+                      maxlength="10" required>
+                    <span class="err" data-error="mobile_no" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="age">
+                    <label for="br-age">Age (years)<span class="req">*</span></label>
+                    <input id="br-age" name="age" type="number" min="0" max="150" step="1" required>
+                    <span class="err" data-error="age" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="dob">
+                    <label for="br-dob">Date of birth<span class="opt">Optional</span></label>
+                    <input id="br-dob" name="dob" type="date" max="2026-11-15">
+                    <span class="err" data-error="dob" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="gender">
+                    <label for="br-gender">Gender<span class="req">*</span></label>
+                    <select id="br-gender" name="gender" required>
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Transgender">Transgender</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <span class="err" data-error="gender" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="i_cover">
+                    <label for="br-category">Payment category<span class="req">*</span></label>
+                    <select id="br-category" name="i_cover" required>
+                      <option value="">Select category</option>
+                      <option value="1" selected>Cash</option>
+                    </select>
+                    <span class="err" data-error="i_cover" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="email_id">
+                    <label for="br-email">Email<span class="opt">Optional</span></label>
+                    <input id="br-email" name="email_id" type="email" maxlength="150">
+                    <span class="err" data-error="email_id" role="alert"></span>
+                  </div>
+                  <div class="field f-wide" data-field="Address">
+                    <label for="br-address">Address<span class="opt">Optional</span></label>
+                    <input id="br-address" name="Address" type="text" maxlength="1000">
+                    <span class="err" data-error="Address" role="alert"></span>
+                  </div>
+                </div>
+                <div class="banner banner-warn" id="br-duplicates" hidden role="status"></div>
+                <p id="br-error" class="err" role="alert"></p>
+                <div class="sec-actions billing-step-actions">
+                  <button type="button" class="btn btn-text" id="billing-register-cancel">Search existing
+                    patient</button>
+                  <button type="submit" class="btn btn-filled" id="billing-register-save">Register &amp; continue to
+                    visit</button>
+                </div>
+              </form>
+            </div>
+          </section>
+          <!-- Before patient is selected -->
+          <div class="ob-empty" id="ob-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z" />
+              <path d="M9 8h6M9 12h6" />
+            </svg>
+            <b>Find the patient to start a bill</b>
+            <span>Search by UHID, phone number, ABHA ID or name, or use Register new patient above to complete all three
+              steps here.</span>
           </div>
-  </div>
-  <div class="sec-body">
-    <p id="billing-patient-hint">Search above to select an existing patient, or register a new patient here.</p>
-    <form id="billing-register" hidden novalidate>
-      <div class="grid4">
-        <div class="field" data-field="prefix">
-          <label for="br-prefix">Title<span class="req">*</span></label>
-          <select id="br-prefix" name="prefix" required>
-                        <option value="Mr.">Mr.</option>
-                        <option value="Mrs.">Mrs.</option>
-                        <option value="Ms.">Ms.</option>
-                        <option value="Baby">Baby</option>
-                      </select>
-          <span class="err" data-error="prefix" role="alert"></span>
-        </div>
-        <div class="field" data-field="Fname">
-          <label for="br-first">First name<span class="req">*</span></label>
-          <input id="br-first" name="Fname" type="text" maxlength="100" autocomplete="off" required>
-          <span class="err" data-error="Fname" role="alert"></span>
-        </div>
-        <div class="field" data-field="Lname">
-          <label for="br-last">Last name<span class="opt">Optional</span></label>
-          <input id="br-last" name="Lname" type="text" maxlength="100" autocomplete="off">
-          <span class="err" data-error="Lname" role="alert"></span>
-        </div>
-        <div class="field" data-field="mobile_no">
-          <label for="br-mobile">Mobile number<span class="req">*</span></label>
-          <input id="br-mobile" name="mobile_no" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required>
-          <span class="err" data-error="mobile_no" role="alert"></span>
-        </div>
-        <div class="field" data-field="age">
-          <label for="br-age">Age (years)<span class="req">*</span></label>
-          <input id="br-age" name="age" type="number" min="0" max="150" step="1" required>
-          <span class="err" data-error="age" role="alert"></span>
-        </div>
-        <div class="field" data-field="dob">
-          <label for="br-dob">Date of birth<span class="opt">Optional</span></label>
-          <input id="br-dob" name="dob" type="date" max="2026-11-15">
-          <span class="err" data-error="dob" role="alert"></span>
-        </div>
-        <div class="field" data-field="gender">
-          <label for="br-gender">Gender<span class="req">*</span></label>
-          <select id="br-gender" name="gender" required>
-            <option value="">Select gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Transgender">Transgender</option>
-                        <option value="Other">Other</option>
-                      </select>
-          <span class="err" data-error="gender" role="alert"></span>
-        </div>
-        <div class="field" data-field="i_cover">
-          <label for="br-category">Payment category<span class="req">*</span></label>
-          <select id="br-category" name="i_cover" required>
-            <option value="">Select category</option>
-                        <option value="1" selected>Cash</option>
-                      </select>
-          <span class="err" data-error="i_cover" role="alert"></span>
-        </div>
-        <div class="field" data-field="email_id">
-          <label for="br-email">Email<span class="opt">Optional</span></label>
-          <input id="br-email" name="email_id" type="email" maxlength="150">
-          <span class="err" data-error="email_id" role="alert"></span>
-        </div>
-        <div class="field f-wide" data-field="Address">
-          <label for="br-address">Address<span class="opt">Optional</span></label>
-          <input id="br-address" name="Address" type="text" maxlength="1000">
-          <span class="err" data-error="Address" role="alert"></span>
-        </div>
-      </div>
-      <div class="banner banner-warn" id="br-duplicates" hidden role="status"></div>
-      <p id="br-error" class="err" role="alert"></p>
-      <div class="sec-actions billing-step-actions">
-        <button type="button" class="btn btn-text" id="billing-register-cancel">Search existing patient</button>
-        <button type="submit" class="btn btn-filled" id="billing-register-save">Register &amp; continue to visit</button>
-      </div>
-    </form>
-  </div>
-</section>
-            <!-- Before patient is selected -->
-            <div class="ob-empty" id="ob-empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
-              <b>Find the patient to start a bill</b>
-              <span>Search by UHID, phone number, ABHA ID or name, or use Register new patient above to complete all three steps here.</span>
+
+          <!-- Edit pick decision screen -->
+          <div class="ob-pick" id="edit-pick" hidden>
+            <button type="button" class="btn btn-text ob-back" id="ep-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+              <span id="ep-back-l">All bills</span>
+            </button>
+            <div class="vv-top ob-pt">
+              <div class="vv-who">
+                <h2 id="ep-name"></h2>
+                <p class="vv-meta" id="ep-meta"></p>
+              </div>
             </div>
-
-                        <!-- Edit pick decision screen -->
-            <div class="ob-pick" id="edit-pick" hidden>
-              <button type="button" class="btn btn-text ob-back" id="ep-back">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px"><path d="M15 6l-6 6 6 6"/></svg>
-                <span id="ep-back-l">All bills</span>
-              </button>
-              <div class="vv-top ob-pt">
-                <div class="vv-who">
-                  <h2 id="ep-name"></h2>
-                  <p class="vv-meta" id="ep-meta"></p>
-                </div>
-              </div>
-              <dl class="vv-grid ep-facts" id="ep-facts"></dl>
-              <div class="banner banner-warn is-settled-warn" id="ep-settled-warn" hidden style="margin-top:var(--md-sys-spacing-3);margin-bottom:var(--md-sys-spacing-4);padding:14px 16px;border-radius:10px;background:var(--md-sys-color-warning-container,#fff3cd);color:var(--md-sys-color-on-warning-container,#664d03);display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                <div style="display:flex;align-items:flex-start;gap:12px">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <div>
-                    <strong style="font-size:14px;display:block">This bill is already settled</strong>
-                    <span style="font-size:13px;opacity:0.9">Settled bills cannot be edited. If you want to make changes, please unsettle this bill first and then proceed.</span>
-                  </div>
-                </div>
-                <button type="button" class="btn btn-filled" id="ep-unsettle-btn" style="white-space:nowrap;padding:6px 14px;font-size:13px;height:auto">Unsettle bill</button>
-              </div>
-              <div class="ep-cards" role="group" aria-label="What to do with this bill">
-                                <button type="button" class="ep-card" id="ep-edit">
-                  <span class="ep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
-                  <span class="ep-t">Edit the bill</span>
-                  <span class="ep-d">Correct the doctor, the lines, a discount or what was received — for a bill saved by mistake. If the correction leaves the clinic holding more than the bill asks for, you are asked to refund the difference.</span>
-                </button>
-                                              </div>
-            </div>
-
-            <!-- The bill being prepared -->
-            <div class="ob-form" id="ob-form" hidden>
-                            <button type="button" class="btn btn-text ob-back" id="edit-back" hidden>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px"><path d="M15 6l-6 6 6 6"/></svg>
-                <span id="edit-back-l">All bills</span>
-              </button>
-              <div class="edit-note" id="edit-note" hidden>
-                <div class="edit-note-main">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:20px;height:20px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  <div class="en-what">
-                    <div class="en-title"><span id="en-verb">Editing Bill</span> <b id="en-no"></b></div>
-                    <p class="en-sub" id="en-sub">Changes to lines, doctor or discount will update this bill.</p>
-                  </div>
-                </div>
-                <div class="en-acts">
-                  <button type="button" class="btn btn-text" id="edit-stop">Exit edit mode</button>
-                </div>
-              </div>
-
-              <div class="vv-top ob-pt" id="pt-block">
-                <div class="vv-who">
-                  <h2><span class="sec-n" aria-hidden="true">1</span><span id="pt-name"></span></h2>
-                  <p class="vv-meta" id="pt-meta"></p>
-                </div>
-                <div class="pt-doc-badge" id="pt-doc-badge" hidden>
-                  <label class="doc-label" id="pt-doc-label">
-                    <span class="doc-lbl-title">Doctor:</span>
-                    <b class="doc-lbl-name" id="pt-doc-name"></b>
-                    <span class="doc-lbl-spec" id="pt-doc-spec" style="display:none;"></span>
-                  </label>
-                </div>
-                <button type="button" class="btn btn-text" id="pt-change">Change patient</button>
-              </div>
-
-              <!-- Reused Visit Component with Billing mode -->
-              <section class="panel sec" id="billing-visit-summary" hidden>
-                <div class="sec-head">
-                  <div><h2 class="sec-title"><span class="sec-n" aria-hidden="true">2</span>Visit</h2><span class="sec-sum" id="billing-visit-description"></span></div>
-                  <button type="button" class="btn btn-text" id="billing-edit-visit">Edit visit</button>
-                </div>
-              </section>
-              <section class="panel sec sec-v" id="sec-visit" aria-labelledby="t-doc" tabindex="-1">
-  <div class="sec-head">
-    <div>
-      <h2 class="sec-title" id="t-doc">
-                  <span class="sec-n" aria-hidden="true">2</span>
-                Visit
-      </h2>
-      <span class="sec-sum" id="v-sum"></span>
-    </div>
-          <div class="sec-actions">
-        <button type="button" class="btn btn-outlined" id="sec-vitals-btn" onclick="openVitals(this)" aria-haspopup="dialog" style="display:inline-flex; align-items:center; gap:6px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          Add vitals
-        </button>
-      </div>
-      </div>
-  <div class="sec-body">
-        <div class="field billing-visit-kind">
-      <label for="billing-visit-kind">Visit reason<span class="req">*</span></label>
-      <select id="billing-visit-kind" name="add_visit">
-        <option value="1">Doctor consultation</option>
-        <option value="0">Services only</option>
-      </select>
-    </div>
-        <div class="grid4 has-3cols">
-      <div class="field" data-field="spec">
-        <label for="spec">Specialisation </label>
-        <select id="spec"></select>
-      </div>
-      <div class="field" data-field="doc">
-        <label for="doc">Doctor<span class="req" aria-hidden="true">*</span></label>
-        <select id="doc" aria-required="true" aria-describedby="doc-err"></select>
-        <span class="err" id="doc-err" role="alert"></span>
-      </div>
-      <div class="field" data-field="charge">
-        <label for="charge">Consultation </label>
-        <select id="charge" aria-describedby="charge-hint"></select>
-        <span class="err" id="charge-err" role="alert"></span>
-      </div>
-      <div class="field" data-field="ref_by" id="f-ref-by"  hidden style="display:none;" >
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <label for="ref_by">Ref. By <span class="opt">Optional</span></label>
-          <button type="button" class="btn btn-text" id="add-ref-btn" style="padding:0;min-height:auto;font-size:12px;font-weight:600;color:var(--md-sys-color-primary,#0b57d0);text-decoration:none;" title="Add referring doctor">+ Add</button>
-        </div>
-        <select id="ref_by" name="ref_by">
-          <option value="">— Select Ref. By —</option>
-        </select>
-      </div>
-              <div class="field ob-consult" data-field="consult" style="grid-column: 1 / -1; margin-top: 4px;">
-          <span class="lbl" aria-hidden="true">&nbsp;</span>
-          <label class="check"><input type="checkbox" id="consult"><span class="c-label">Add consultation to this bill</span></label>
-        </div>
-          </div>
-        <p class="err" id="billing-visit-error" role="alert"></p>
-    <div class="sec-actions billing-step-actions">
-      <button type="button" class="btn btn-filled" id="billing-start">Create visit &amp; start billing</button>
-    </div>
-      </div>
-</section>
-
-              
-              <!-- Reused OPD Billing Component -->
-              <section class="panel sec sec-b" id="sec-bill" aria-labelledby="t-bill" tabindex="-1">
-  <div class="sec-head">
-    <div>
-      <h2 class="sec-title" id="t-bill">
-                  <span class="sec-n" aria-hidden="true">3</span>
-                OPD billing
-      </h2>
-    </div>
-    <div class="sec-actions">
-      <div class="svc-find" id="svc-find" >
-        <label class="sr" for="svc-q">Search a service to add</label>
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
-          <input id="svc-q" type="text" autocomplete="off" placeholder="Add service: name or ID" role="combobox" aria-expanded="false" aria-controls="svc-list" aria-autocomplete="list">
-        </div>
-        <ul class="svc-list" id="svc-list" role="listbox" aria-label="Services" hidden></ul>
-        <select id="add-svc" hidden tabindex="-1" aria-hidden="true"></select>
-      </div>
-    </div>
-  </div>
-  <div class="sec-body">
-    <table class="bill">
-      <caption class="sr">Items on this bill</caption>
-      <thead><tr><th scope="col" class="c-sn">S.N.</th><th scope="col">Item</th><th scope="col" class="num">Rate</th><th scope="col" class="num">Qty</th><th scope="col" class="num c-disc">Discount</th><th scope="col" class="num">Amount</th><th scope="col"><span class="sr">Remove</span></th></tr></thead>
-      <tbody id="bill-rows"></tbody>
-    </table>
-    <p class="bill-empty" id="bill-empty">Add the consultation above, or search a service to add it to the bill.</p>
-
-    <div class="totals">
-      <div class="tot"><span>Subtotal</span><span class="t-v" id="t-sub">&#8377;0.00</span></div>
-      <div class="tot" id="t-disc-row" hidden><span>Item discounts</span><span class="t-v" id="t-disc">&#8377;0.00</span></div>
-      <div class="tot tot-bd"><span>Bill discount</span>
-        <span class="bd-ctl">
-          <span class="ldisc">
-            <span class="dunit" role="group" aria-label="Bill discount in">
-              <button type="button" data-bunit="inr" aria-pressed="true" title="Bill discount in rupees" >&#8377;</button>
-              <button type="button" data-bunit="pct" aria-pressed="false" title="Bill discount as a percent" >%</button>
-            </span>
-            <input id="bdisc" type="text" inputmode="numeric" maxlength="6" placeholder="0" aria-label="Discount on the whole bill" >
-          </span>
-          <span class="t-v" id="t-bdisc">&minus;&#8377;0.00</span>
-        </span>
-      </div>
-      <div class="tot tot-auth" id="tot-auth-row" hidden>
-        <span>Discount auth by <span class="req" style="color:var(--md-sys-color-error, #b3261e)">*</span></span>
-        <span class="auth-ctl">
-          <select id="discount_auth_by" class="select-auth" aria-label="Discount Authorized By">
-            <option value="">Select Auth By</option>
-                                          <option value="9">Test Staff</option>
-                                    </select>
-        </span>
-      </div>
-      <div class="tot tot-big"><span>Payable</span><span class="t-v" id="t-pay">&#8377;0.00</span></div>
-    </div>
-    <!-- the old single discount and mode buttons, kept out of sight: earlier code still reads them -->
-    <div hidden><input id="disc" type="text" value="0" tabindex="-1" aria-hidden="true"><div id="mode"><button type="button" data-mode="Cash" aria-pressed="true" tabindex="-1">Cash</button></div></div>
-
-    <div class="pay" aria-labelledby="pay-h">
-      <h3 class="pay-h" id="pay-h">Payment</h3>
-      <div class="pay-grid pay-head" aria-hidden="true"><span>Mode</span><span>Amount</span><span>Transaction ID</span><span></span></div>
-      <div id="pay-rows">
-        <div class="pay-grid pay-row" data-pay="0">
-          <select data-pk="mode" aria-label="Payment mode 1"><option selected="">Cash</option><option>UPI</option><option>Card</option><option>Cheque</option><option>Bank transfer</option></select>
-          <div class="affix"><span class="prefix">&#8377;</span><input type="text" inputmode="numeric" maxlength="7" data-pk="amt" value="" placeholder="0" aria-label="Amount by Cash"></div>
-          <input type="text" data-pk="txn" value="" placeholder="Not needed for cash" disabled aria-label="Transaction ID for Cash" autocomplete="off">
-          <span></span>
-        </div>
-      </div>
-      <button type="button" class="btn btn-text pay-add" id="pay-add">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Add another payment mode</button>
-      <div class="pay-grid pay-tot pay-got">
-        <span class="pt-k">Total collected</span><span class="pt-v" id="pay-got">&#8377;0.00</span><span class="pt-st"></span><span></span>
-      </div>
-      <div class="pay-grid pay-tot pay-bal" id="pay-bal-box">
-        <span class="pt-k">Balance</span><span class="pt-v" id="pay-bal">&#8377;0.00</span><span class="pt-st" id="pay-bal-k"></span><span></span>
-      </div>
-      <span class="err pay-err" id="pay-err" role="alert"></span>
-      <div class="pay-foot">
-        <div class="field pay-remark" data-field="remark">
-          <label for="remark">Remark</label>
-          <input id="remark" type="text" placeholder="Remark" autocomplete="off" maxlength="120">
-        </div>
-        <p class="pay-by">Collected by <b id="pay-by">Front desk</b></p>
-      </div>
-    </div>
-  </div>
-</section>
-
-              <!-- Cancellation Panel -->
-              <section class="panel sec sec-x" id="sec-cancel" aria-labelledby="t-cancel" hidden>
-                <div class="sec-head">
-                  <h2 class="sec-title" id="t-cancel">Cancel this bill, or lines of it</h2>
-                  <label class="check cx-all"><input type="checkbox" id="cx-bill"><span class="c-label">Cancel the whole bill</span></label>
-                </div>
-                <div class="sec-body">
-                  <div class="banner banner-warn" id="cx-warn" role="note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 9v5"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.6 17.1A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
-                    <div>
-                      <div class="b-title" id="cx-warn-t"></div>
-                      <p class="b-detail" id="cx-warn-d"></p>
-                    </div>
-                  </div>
-                  <table class="tbl cx-tbl" id="cx-tbl">
-                    <thead><tr><th>No.</th><th>Service</th><th class="num">Charges</th><th class="num">Qty.</th><th class="num">Discount</th><th class="num">Amount</th><th class="act">Cancel</th></tr></thead>
-                    <tbody id="cx-rows"></tbody>
-                  </table>
-
-                  <!-- Dynamic Refund Calculation & Mode Selection -->
-                  <div class="cx-calc" id="cx-calc">
-                    <div class="cx-calc-card">
-                      <div class="cx-calc-item">
-                        <span class="cx-calc-label">Subtotal</span>
-                        <span class="cx-calc-val" id="cx-subtotal">&#8377;0.00</span>
-                      </div>
-                      <div class="cx-calc-item">
-                        <span class="cx-calc-label">Discount (<span id="cx-disc-pct">0</span>%)</span>
-                        <span class="cx-calc-val" id="cx-disc-amt">-&#8377;0.00</span>
-                      </div>
-                      <div class="cx-calc-item cx-calc-total">
-                        <span class="cx-calc-label">Refund Amount</span>
-                        <span class="cx-calc-val" id="cx-net-amt">&#8377;0.00</span>
-                      </div>
-                    </div>
-
-                    <div class="cx-mode-block" id="cx-mode-block">
-                      <label class="cx-label">Refund Mode</label>
-                      <div class="cx-modes" role="radiogroup" aria-label="Refund Mode">
-                        <label class="cx-mode-pill">
-                          <input type="radio" name="cx_refund_mode" value="cash" checked>
-                          <span>Cash</span>
-                        </label>
-                        <label class="cx-mode-pill">
-                          <input type="radio" name="cx_refund_mode" value="upi">
-                          <span>UPI</span>
-                        </label>
-                        <label class="cx-mode-pill">
-                          <input type="radio" name="cx_refund_mode" value="net_banking">
-                          <span>Bank transfer</span>
-                        </label>
-                        <label class="cx-mode-pill">
-                          <input type="radio" name="cx_refund_mode" value="cheque">
-                          <span>Cheque</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="cx-foot">
-                    <div class="field cx-remark" data-field="cxremark">
-                      <label for="cx-remark">Cancellation remark<span class="req">*</span></label>
-                      <input id="cx-remark" type="text" placeholder="Why is this being cancelled?" autocomplete="off" maxlength="160">
-                      <span class="err" id="cxremark-err" role="alert"></span>
-                    </div>
-                    <div class="field cx-file">
-                      <label for="cx-file">Attachment</label>
-                      <input id="cx-file" type="file">
-                    </div>
-                  </div>
-                  <div class="cx-acts">
-                                                            <span class="cx-note" id="cx-note"></span>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <!-- The bill once paid/generated -->
-            <div class="ob-paid" id="ob-paid" hidden>
-              <div class="vv-bar">
-                <button type="button" class="btn btn-filled" id="paid-next">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width:18px;height:18px"><path d="M12 5v14M5 12h14"/></svg>
-                  New bill
-                </button>
-                                <button type="button" class="btn btn-outlined" id="paid-edit">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  Edit this bill
-                </button>
-                                              </div>
-              <div class="vv-ok" role="status">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
-                <div><b id="paid-h"></b><span id="paid-t"></span></div>
-              </div>
-              <div id="paid-doc"></div>
-            </div>
-
-            <!-- The bill once edit is saved -->
-            <div class="ob-paid" id="edit-done" hidden>
-              <div class="vv-bar">
-                <button type="button" class="btn btn-outlined" id="ed-bills">All bills</button>
-                <button type="button" class="btn btn-outlined" id="ed-new">New bill</button>
-              </div>
-              <div class="vv-ok" role="status">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
-                <div><b id="ed-h"></b><span id="ed-t"></span></div>
-              </div>
-              <div class="banner banner-warn" id="ed-ask" role="alert" hidden>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 9v5"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.6 17.1A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
+            <dl class="vv-grid ep-facts" id="ep-facts"></dl>
+            <div class="banner banner-warn is-settled-warn" id="ep-settled-warn" hidden
+              style="margin-top:var(--md-sys-spacing-3);margin-bottom:var(--md-sys-spacing-4);padding:14px 16px;border-radius:10px;background:var(--md-sys-color-warning-container,#fff3cd);color:var(--md-sys-color-on-warning-container,#664d03);display:flex;align-items:center;justify-content:space-between;gap:16px;">
+              <div style="display:flex;align-items:flex-start;gap:12px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  style="width:22px;height:22px;flex-shrink:0;margin-top:2px">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
                 <div>
-                  <div class="b-title" id="ed-ask-t"></div>
-                  <p class="b-detail" id="ed-ask-d"></p>
+                  <strong style="font-size:14px;display:block">This bill is already settled</strong>
+                  <span style="font-size:13px;opacity:0.9">Settled bills cannot be edited. If you want to make changes,
+                    please unsettle this bill first and then proceed.</span>
                 </div>
-                              </div>
-              <div id="ed-doc"></div>
+              </div>
+              <button type="button" class="btn btn-filled" id="ep-unsettle-btn"
+                style="white-space:nowrap;padding:6px 14px;font-size:13px;height:auto">Unsettle bill</button>
+            </div>
+            <div class="ep-cards" role="group" aria-label="What to do with this bill">
+              <button type="button" class="ep-card" id="ep-edit">
+                <span class="ep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg></span>
+                <span class="ep-t">Edit the bill</span>
+                <span class="ep-d">Correct the doctor, the lines, a discount or what was received — for a bill saved by
+                  mistake. If the correction leaves the clinic holding more than the bill asks for, you are asked to
+                  refund the difference.</span>
+              </button>
             </div>
           </div>
 
-          <!-- Sticky Bottom Action Bar -->
-          <div class="actionbar" id="ob-bar" hidden>
-            <div class="ab-what">
-              <div class="ab-line" id="ab-line"></div>
-              <p class="ab-sub" id="ab-sub"></p>
+          <!-- The bill being prepared -->
+          <div class="ob-form" id="ob-form" hidden>
+            <button type="button" class="btn btn-text ob-back" id="edit-back" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+              <span id="edit-back-l">All bills</span>
+            </button>
+            <div class="edit-note" id="edit-note" hidden>
+              <div class="edit-note-main">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true" style="width:20px;height:20px;flex-shrink:0">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                <div class="en-what">
+                  <div class="en-title"><span id="en-verb">Editing Bill</span> <b id="en-no"></b></div>
+                  <p class="en-sub" id="en-sub">Changes to lines, doctor or discount will update this bill.</p>
+                </div>
+              </div>
+              <div class="en-acts">
+                <button type="button" class="btn btn-text" id="edit-stop">Exit edit mode</button>
+              </div>
             </div>
-            <span class="ab-amt" id="ab-amt">&#8377;0.00</span>
-            <div class="ab-btns">
-              <button type="button" class="btn btn-outlined" id="save-only">Bill later</button>
-              <button type="button" class="btn btn-outlined" id="ob-clear">Clear</button>
-              <button type="button" class="btn btn-filled" id="collect">Collect &#8377;0.00<span class="kbd">Alt S</span></button>
-            </div>
-          </div>
-        </section>
-       
 
-            <!-- ═════════════ TAB 2: ALL BILLS ═════════════ -->
+            <div class="vv-top ob-pt" id="pt-block">
+              <div class="vv-who">
+                <h2><span class="sec-n" aria-hidden="true">1</span><span id="pt-name"></span></h2>
+                <p class="vv-meta" id="pt-meta"></p>
+              </div>
+              <div class="pt-doc-badge" id="pt-doc-badge" hidden>
+                <label class="doc-label" id="pt-doc-label">
+                  <span class="doc-lbl-title">Doctor:</span>
+                  <b class="doc-lbl-name" id="pt-doc-name"></b>
+                  <span class="doc-lbl-spec" id="pt-doc-spec" style="display:none;"></span>
+                </label>
+              </div>
+              <button type="button" class="btn btn-text" id="pt-change">Change patient</button>
+            </div>
+
+            <!-- Reused Visit Component with Billing mode -->
+            <section class="panel sec" id="billing-visit-summary" hidden>
+              <div class="sec-head">
+                <div>
+                  <h2 class="sec-title"><span class="sec-n" aria-hidden="true">2</span>Visit</h2><span class="sec-sum"
+                    id="billing-visit-description"></span>
+                </div>
+                <button type="button" class="btn btn-text" id="billing-edit-visit">Edit visit</button>
+              </div>
+            </section>
+            <section class="panel sec sec-v" id="sec-visit" aria-labelledby="t-doc" tabindex="-1">
+              <div class="sec-head">
+                <div>
+                  <h2 class="sec-title" id="t-doc">
+                    <span class="sec-n" aria-hidden="true">2</span>
+                    Visit
+                  </h2>
+                  <span class="sec-sum" id="v-sum"></span>
+                </div>
+                <div class="sec-actions">
+                  <button type="button" class="btn btn-outlined" id="sec-vitals-btn" onclick="openVitals(this)"
+                    aria-haspopup="dialog" style="display:inline-flex; align-items:center; gap:6px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    Add vitals
+                  </button>
+                </div>
+              </div>
+              <div class="sec-body">
+                <div class="field billing-visit-kind">
+                  <label for="billing-visit-kind">Visit reason<span class="req">*</span></label>
+                  <select id="billing-visit-kind" name="add_visit">
+                    <option value="1">Doctor consultation</option>
+                    <option value="0">Services only</option>
+                  </select>
+                </div>
+                <div class="grid4 has-3cols">
+                  <div class="field" data-field="spec">
+                    <label for="spec">Specialisation </label>
+                    <select id="spec"></select>
+                  </div>
+                  <div class="field" data-field="doc">
+                    <label for="doc">Doctor<span class="req" aria-hidden="true">*</span></label>
+                    <select id="doc" aria-required="true" aria-describedby="doc-err"></select>
+                    <span class="err" id="doc-err" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="charge">
+                    <label for="charge">Consultation </label>
+                    <select id="charge" aria-describedby="charge-hint"></select>
+                    <span class="err" id="charge-err" role="alert"></span>
+                  </div>
+                  <div class="field" data-field="ref_by" id="f-ref-by" hidden style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <label for="ref_by">Ref. By <span class="opt">Optional</span></label>
+                      <button type="button" class="btn btn-text" id="add-ref-btn"
+                        style="padding:0;min-height:auto;font-size:12px;font-weight:600;color:var(--md-sys-color-primary,#0b57d0);text-decoration:none;"
+                        title="Add referring doctor">+ Add</button>
+                    </div>
+                    <select id="ref_by" name="ref_by">
+                      <option value="">— Select Ref. By —</option>
+                    </select>
+                  </div>
+                  <div class="field ob-consult" data-field="consult" style="grid-column: 1 / -1; margin-top: 4px;">
+                    <span class="lbl" aria-hidden="true">&nbsp;</span>
+                    <label class="check"><input type="checkbox" id="consult"><span class="c-label">Add consultation to
+                        this bill</span></label>
+                  </div>
+                </div>
+                <p class="err" id="billing-visit-error" role="alert"></p>
+                <div class="sec-actions billing-step-actions">
+                  <button type="button" class="btn btn-filled" id="billing-start">Create visit &amp; start
+                    billing</button>
+                </div>
+              </div>
+            </section>
+
+
+            <!-- Reused Billing Component -->
+            <section class="panel sec sec-b" id="sec-bill" aria-labelledby="t-bill" tabindex="-1">
+              <div class="sec-head">
+                <div>
+                  <h2 class="sec-title" id="t-bill">
+                    <span class="sec-n" aria-hidden="true">3</span>
+                    Billing
+                  </h2>
+                </div>
+                <div class="sec-actions">
+                  <div class="svc-find" id="svc-find">
+                    <label class="sr" for="svc-q">Search a service to add</label>
+                    <div class="search">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                        stroke-linecap="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6.5" />
+                        <path d="M16 16l4 4" />
+                      </svg>
+                      <input id="svc-q" type="text" autocomplete="off" placeholder="Add service: name or ID"
+                        role="combobox" aria-expanded="false" aria-controls="svc-list" aria-autocomplete="list">
+                    </div>
+                    <ul class="svc-list" id="svc-list" role="listbox" aria-label="Services" hidden></ul>
+                    <select id="add-svc" hidden tabindex="-1" aria-hidden="true"></select>
+                  </div>
+                </div>
+              </div>
+              <div class="sec-body">
+                <table class="bill">
+                  <caption class="sr">Items on this bill</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" class="c-sn">S.N.</th>
+                      <th scope="col">Item</th>
+                      <th scope="col" class="num">Rate</th>
+                      <th scope="col" class="num">Qty</th>
+                      <th scope="col" class="num c-disc">Discount</th>
+                      <th scope="col" class="num">Amount</th>
+                      <th scope="col"><span class="sr">Remove</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="bill-rows"></tbody>
+                </table>
+                <p class="bill-empty" id="bill-empty">Add the consultation above, or search a service to add it to the
+                  bill.</p>
+
+                <div class="totals">
+                  <div class="tot"><span>Subtotal</span><span class="t-v" id="t-sub">&#8377;0.00</span></div>
+                  <div class="tot" id="t-disc-row" hidden><span>Item discounts</span><span class="t-v"
+                      id="t-disc">&#8377;0.00</span></div>
+                  <div class="tot tot-bd"><span>Bill discount</span>
+                    <span class="bd-ctl">
+                      <span class="ldisc">
+                        <span class="dunit" role="group" aria-label="Bill discount in">
+                          <button type="button" data-bunit="inr" aria-pressed="true"
+                            title="Bill discount in rupees">&#8377;</button>
+                          <button type="button" data-bunit="pct" aria-pressed="false"
+                            title="Bill discount as a percent">%</button>
+                        </span>
+                        <input id="bdisc" type="text" inputmode="numeric" maxlength="6" placeholder="0"
+                          aria-label="Discount on the whole bill">
+                      </span>
+                      <span class="t-v" id="t-bdisc">&minus;&#8377;0.00</span>
+                    </span>
+                  </div>
+                  <div class="tot tot-auth" id="tot-auth-row" hidden>
+                    <span>Discount auth by <span class="req"
+                        style="color:var(--md-sys-color-error, #b3261e)">*</span></span>
+                    <span class="auth-ctl">
+                      <select id="discount_auth_by" class="select-auth" aria-label="Discount Authorized By">
+                        <option value="">Select Auth By</option>
+                        <option value="9">Test Staff</option>
+                      </select>
+                    </span>
+                  </div>
+                  <div class="tot tot-big"><span>Payable</span><span class="t-v" id="t-pay">&#8377;0.00</span></div>
+                </div>
+                <!-- the old single discount and mode buttons, kept out of sight: earlier code still reads them -->
+                <div hidden><input id="disc" type="text" value="0" tabindex="-1" aria-hidden="true">
+                  <div id="mode"><button type="button" data-mode="Cash" aria-pressed="true" tabindex="-1">Cash</button>
+                  </div>
+                </div>
+
+                <div class="pay" aria-labelledby="pay-h">
+                  <h3 class="pay-h" id="pay-h">Payment</h3>
+                  <div class="pay-grid pay-head" aria-hidden="true">
+                    <span>Mode</span><span>Amount</span><span>Transaction ID</span><span></span></div>
+                  <div id="pay-rows">
+                    <div class="pay-grid pay-row" data-pay="0">
+                      <select data-pk="mode" aria-label="Payment mode 1">
+                        <option selected="">Cash</option>
+                        <option>UPI</option>
+                        <option>Card</option>
+                        <option>Cheque</option>
+                        <option>Bank transfer</option>
+                      </select>
+                      <div class="affix"><span class="prefix">&#8377;</span><input type="text" inputmode="numeric"
+                          maxlength="7" data-pk="amt" value="" placeholder="0" aria-label="Amount by Cash"></div>
+                      <input type="text" data-pk="txn" value="" placeholder="Not needed for cash" disabled
+                        aria-label="Transaction ID for Cash" autocomplete="off">
+                      <span></span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-text pay-add" id="pay-add">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Add another payment mode</button>
+                  <div class="pay-grid pay-tot pay-got">
+                    <span class="pt-k">Total collected</span><span class="pt-v" id="pay-got">&#8377;0.00</span><span
+                      class="pt-st"></span><span></span>
+                  </div>
+                  <div class="pay-grid pay-tot pay-bal" id="pay-bal-box">
+                    <span class="pt-k">Balance</span><span class="pt-v" id="pay-bal">&#8377;0.00</span><span
+                      class="pt-st" id="pay-bal-k"></span><span></span>
+                  </div>
+                  <span class="err pay-err" id="pay-err" role="alert"></span>
+                  <div class="pay-foot">
+                    <div class="field pay-remark" data-field="remark">
+                      <label for="remark">Remark</label>
+                      <input id="remark" type="text" placeholder="Remark" autocomplete="off" maxlength="120">
+                    </div>
+                    <p class="pay-by">Collected by <b id="pay-by">Front desk</b></p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Cancellation Panel -->
+            <section class="panel sec sec-x" id="sec-cancel" aria-labelledby="t-cancel" hidden>
+              <div class="sec-head">
+                <h2 class="sec-title" id="t-cancel">Cancel this bill, or lines of it</h2>
+                <label class="check cx-all"><input type="checkbox" id="cx-bill"><span class="c-label">Cancel the whole
+                    bill</span></label>
+              </div>
+              <div class="sec-body">
+                <div class="banner banner-warn" id="cx-warn" role="note">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                    aria-hidden="true">
+                    <path d="M12 9v5" />
+                    <circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" />
+                    <path
+                      d="M10.3 3.9 2.6 17.1A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z" />
+                  </svg>
+                  <div>
+                    <div class="b-title" id="cx-warn-t"></div>
+                    <p class="b-detail" id="cx-warn-d"></p>
+                  </div>
+                </div>
+                <table class="tbl cx-tbl" id="cx-tbl">
+                  <thead>
+                    <tr>
+                      <th>No.</th>
+                      <th>Service</th>
+                      <th class="num">Charges</th>
+                      <th class="num">Qty.</th>
+                      <th class="num">Discount</th>
+                      <th class="num">Amount</th>
+                      <th class="act">Cancel</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cx-rows"></tbody>
+                </table>
+
+                <!-- Dynamic Refund Calculation & Mode Selection -->
+                <div class="cx-calc" id="cx-calc">
+                  <div class="cx-calc-card">
+                    <div class="cx-calc-item">
+                      <span class="cx-calc-label">Subtotal</span>
+                      <span class="cx-calc-val" id="cx-subtotal">&#8377;0.00</span>
+                    </div>
+                    <div class="cx-calc-item">
+                      <span class="cx-calc-label">Discount (<span id="cx-disc-pct">0</span>%)</span>
+                      <span class="cx-calc-val" id="cx-disc-amt">-&#8377;0.00</span>
+                    </div>
+                    <div class="cx-calc-item cx-calc-total">
+                      <span class="cx-calc-label">Refund Amount</span>
+                      <span class="cx-calc-val" id="cx-net-amt">&#8377;0.00</span>
+                    </div>
+                  </div>
+
+                  <div class="cx-mode-block" id="cx-mode-block">
+                    <label class="cx-label">Refund Mode</label>
+                    <div class="cx-modes" role="radiogroup" aria-label="Refund Mode">
+                      <label class="cx-mode-pill">
+                        <input type="radio" name="cx_refund_mode" value="cash" checked>
+                        <span>Cash</span>
+                      </label>
+                      <label class="cx-mode-pill">
+                        <input type="radio" name="cx_refund_mode" value="upi">
+                        <span>UPI</span>
+                      </label>
+                      <label class="cx-mode-pill">
+                        <input type="radio" name="cx_refund_mode" value="net_banking">
+                        <span>Bank transfer</span>
+                      </label>
+                      <label class="cx-mode-pill">
+                        <input type="radio" name="cx_refund_mode" value="cheque">
+                        <span>Cheque</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="cx-foot">
+                  <div class="field cx-remark" data-field="cxremark">
+                    <label for="cx-remark">Cancellation remark<span class="req">*</span></label>
+                    <input id="cx-remark" type="text" placeholder="Why is this being cancelled?" autocomplete="off"
+                      maxlength="160">
+                    <span class="err" id="cxremark-err" role="alert"></span>
+                  </div>
+                  <div class="field cx-file">
+                    <label for="cx-file">Attachment</label>
+                    <input id="cx-file" type="file">
+                  </div>
+                </div>
+                <div class="cx-acts">
+                  <span class="cx-note" id="cx-note"></span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- The bill once paid/generated -->
+          <div class="ob-paid" id="ob-paid" hidden>
+            <div class="vv-bar">
+              <button type="button" class="btn btn-filled" id="paid-next">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  aria-hidden="true" style="width:18px;height:18px">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                New bill
+              </button>
+              <button type="button" class="btn btn-outlined" id="paid-edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Edit this bill
+              </button>
+            </div>
+            <div class="vv-ok" role="status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 12.5l2.5 2.5L16 9.5" />
+              </svg>
+              <div><b id="paid-h"></b><span id="paid-t"></span></div>
+            </div>
+            <div id="paid-doc"></div>
+          </div>
+
+          <!-- The bill once edit is saved -->
+          <div class="ob-paid" id="edit-done" hidden>
+            <div class="vv-bar">
+              <button type="button" class="btn btn-outlined" id="ed-bills">All bills</button>
+              <button type="button" class="btn btn-outlined" id="ed-new">New bill</button>
+            </div>
+            <div class="vv-ok" role="status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 12.5l2.5 2.5L16 9.5" />
+              </svg>
+              <div><b id="ed-h"></b><span id="ed-t"></span></div>
+            </div>
+            <div class="banner banner-warn" id="ed-ask" role="alert" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                aria-hidden="true">
+                <path d="M12 9v5" />
+                <circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" />
+                <path
+                  d="M10.3 3.9 2.6 17.1A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z" />
+              </svg>
+              <div>
+                <div class="b-title" id="ed-ask-t"></div>
+                <p class="b-detail" id="ed-ask-d"></p>
+              </div>
+            </div>
+            <div id="ed-doc"></div>
+          </div>
+        </div>
+
+        <!-- Sticky Bottom Action Bar -->
+        <div class="actionbar" id="ob-bar" hidden>
+          <div class="ab-what">
+            <div class="ab-line" id="ab-line"></div>
+            <p class="ab-sub" id="ab-sub"></p>
+          </div>
+          <span class="ab-amt" id="ab-amt">&#8377;0.00</span>
+          <div class="ab-btns">
+            <button type="button" class="btn btn-outlined" id="save-only">Bill later</button>
+            <button type="button" class="btn btn-outlined" id="ob-clear">Clear</button>
+            <button type="button" class="btn btn-filled" id="collect">Collect &#8377;0.00<span class="kbd">Alt
+                S</span></button>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ═════════════ TAB 2: ALL BILLS ═════════════ -->
       <section id="view-all" role="tabpanel" aria-labelledby="tab-all" hidden>
         <div class="finder ab-filter">
           <form id="all-form" class="af-row" autocomplete="off" role="search" aria-label="Find bills">
@@ -592,10 +731,20 @@
             <div class="panel al-panel">
               <div class="tbl-wrap al-wrap">
                 <table class="tbl al-tbl" id="al-tbl">
-                  <thead><tr>
-                    <th>Bill no.</th><th>Date &amp; time</th><th>Patient</th><th>Doctor</th>
-                    <th class="num">Subtotal</th><th class="num">Discount</th><th class="num">Billed</th><th class="num">Paid</th><th class="num">Due</th><th class="act"><span class="sr">Actions</span></th>
-                  </tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Bill no.</th>
+                      <th>Date &amp; time</th>
+                      <th>Patient</th>
+                      <th>Doctor</th>
+                      <th class="num">Subtotal</th>
+                      <th class="num">Discount</th>
+                      <th class="num">Billed</th>
+                      <th class="num">Paid</th>
+                      <th class="num">Due</th>
+                      <th class="act"><span class="sr">Actions</span></th>
+                    </tr>
+                  </thead>
                   <tbody id="al-rows"></tbody>
                 </table>
                 <p class="al-none" id="al-none" hidden></p>
@@ -603,7 +752,11 @@
               <div class="al-pager" id="al-pager" hidden>
                 <span class="pg-info" id="pg-info" aria-live="polite"></span>
                 <label class="pg-size"><span>Rows per page</span>
-                  <select id="pg-size" aria-label="Bills per page"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option></select>
+                  <select id="pg-size" aria-label="Bills per page">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
                 </label>
                 <nav class="pg-nums" id="pg-nums" aria-label="Pages of bills"></nav>
               </div>
@@ -611,15 +764,18 @@
           </div>
           <div id="all-detail" hidden>
             <button type="button" class="btn btn-text ob-back" id="al-back">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px"><path d="M15 6l-6 6 6 6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
               All bills
             </button>
             <div id="al-doc"></div>
           </div>
         </div>
       </section>
-      
-          </div>
+
+    </div>
   </div>
 
   <!-- Row overflow kebab menu fixed to viewport -->
@@ -639,9 +795,14 @@
   <div class="dlg-scrim" id="rq-ask" hidden>
     <div class="dlg ra-dlg" role="dialog" aria-modal="true" aria-labelledby="rq-t" aria-describedby="rq-d">
       <div class="dlg-head">
-        <div><h2 class="dlg-title" id="rq-t"></h2></div>
+        <div>
+          <h2 class="dlg-title" id="rq-t"></h2>
+        </div>
         <button type="button" class="icon-btn dlg-x" id="rq-x" aria-label="Close dialog">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
       <div class="ra-body rj-body" id="rq-d">
@@ -649,7 +810,9 @@
         <p id="rq-d2"></p>
         <div class="field" id="rq-why-f" data-field="rqwhy" hidden style="margin-top:var(--md-sys-spacing-3)">
           <label for="rq-why">Reason for rejecting<span class="req">*</span></label>
-          <textarea id="rq-why" maxlength="200" placeholder="The desk sees this, e.g. amount does not match the cancelled lines" style="width:100%;min-height:72px;resize:vertical;font:inherit;padding:8px 10px;border-radius:var(--md-sys-shape-corner-small);border:1px solid var(--md-sys-color-outline)"></textarea>
+          <textarea id="rq-why" maxlength="200"
+            placeholder="The desk sees this, e.g. amount does not match the cancelled lines"
+            style="width:100%;min-height:72px;resize:vertical;font:inherit;padding:8px 10px;border-radius:var(--md-sys-shape-corner-small);border:1px solid var(--md-sys-color-outline)"></textarea>
           <span class="err" id="rqwhy-err" role="alert"></span>
         </div>
       </div>
@@ -671,12 +834,19 @@
   <div class="dlg-scrim" id="rf-ask" hidden>
     <div class="dlg ra-dlg" role="dialog" aria-modal="true" aria-labelledby="ra-t" aria-describedby="ra-d">
       <div class="dlg-head">
-        <div><h2 class="dlg-title" id="ra-t">Confirm Refund</h2></div>
+        <div>
+          <h2 class="dlg-title" id="ra-t">Confirm Refund</h2>
+        </div>
         <button type="button" class="icon-btn dlg-x" id="ra-x" title="Go back" aria-label="Go back">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
-      <div class="ra-body" id="ra-d"><p id="ra-d1"></p></div>
+      <div class="ra-body" id="ra-d">
+        <p id="ra-d1"></p>
+      </div>
       <div class="dlg-foot ra-foot">
         <button type="button" class="btn btn-text" id="ra-no">Not now</button>
         <button type="button" class="btn btn-filled cx-danger" id="ra-yes">Confirm and refund</button>
@@ -693,18 +863,25 @@
           <p class="dlg-sub" id="er-sub">Receipt <span id="er-rcpt-no"></span> · Bill #<span id="er-bill-no"></span></p>
         </div>
         <button type="button" class="icon-btn dlg-x" id="er-x" title="Close" aria-label="Close dialog">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
       <form id="er-form" autocomplete="off">
         <input type="hidden" id="er-payment-id">
         <input type="hidden" id="er-bill-id">
-        <div class="ra-body" style="padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);display:flex;flex-direction:column;gap:12px">
-          <div id="er-info" style="background:var(--md-sys-color-surface-container-high);padding:10px 12px;border-radius:var(--md-sys-shape-corner-medium);font-size:12.5px;color:var(--md-sys-color-on-surface-variant)"></div>
+        <div class="ra-body"
+          style="padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);display:flex;flex-direction:column;gap:12px">
+          <div id="er-info"
+            style="background:var(--md-sys-color-surface-container-high);padding:10px 12px;border-radius:var(--md-sys-shape-corner-medium);font-size:12.5px;color:var(--md-sys-color-on-surface-variant)">
+          </div>
 
           <div class="field">
             <label for="er-mode">Payment Mode <span style="color:var(--md-sys-color-error)">*</span></label>
-            <select id="er-mode" required style="width:100%;height:38px;padding:6px 10px;border-radius:var(--md-sys-shape-corner-small);border:1px solid var(--md-sys-color-outline);background:var(--md-sys-color-surface)">
+            <select id="er-mode" required
+              style="width:100%;height:38px;padding:6px 10px;border-radius:var(--md-sys-shape-corner-small);border:1px solid var(--md-sys-color-outline);background:var(--md-sys-color-surface)">
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
               <option value="card">Card</option>
@@ -719,7 +896,8 @@
               <span class="prefix">₹</span>
               <input type="number" id="er-amt" step="0.01" min="0.01" required placeholder="0.00">
             </div>
-            <span class="err" id="er-amt-err" role="alert" style="color:var(--md-sys-color-error);font-size:12px" hidden></span>
+            <span class="err" id="er-amt-err" role="alert" style="color:var(--md-sys-color-error);font-size:12px"
+              hidden></span>
           </div>
 
           <div class="field" id="er-txn-wrap">
@@ -729,7 +907,8 @@
 
           <div class="field">
             <label for="er-reason">Reason for Update <span style="color:var(--md-sys-color-error)">*</span></label>
-            <input type="text" id="er-reason" placeholder="e.g. Changed payment mode from Cash to UPI" required maxlength="150">
+            <input type="text" id="er-reason" placeholder="e.g. Changed payment mode from Cash to UPI" required
+              maxlength="150">
           </div>
         </div>
         <div class="dlg-foot" style="justify-content:flex-end">
@@ -741,93 +920,107 @@
   </div>
 
   <div class="dlg-scrim" id="add-ref-dlg" hidden>
-  <div class="dlg" style="max-width: 480px; width: 95%;" role="dialog" aria-modal="true" aria-labelledby="add-ref-h">
-    <div class="dlg-head">
-      <div>
-        <h2 class="dlg-title" id="add-ref-h">Add Referring Doctor</h2>
-        <p class="dlg-sub">Register a new doctor, clinic or referral source</p>
+    <div class="dlg" style="max-width: 480px; width: 95%;" role="dialog" aria-modal="true" aria-labelledby="add-ref-h">
+      <div class="dlg-head">
+        <div>
+          <h2 class="dlg-title" id="add-ref-h">Add Referring Doctor</h2>
+          <p class="dlg-sub">Register a new doctor, clinic or referral source</p>
+        </div>
+        <button type="button" class="icon-btn" id="add-ref-x" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
-      <button type="button" class="icon-btn" id="add-ref-x" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+      <form id="add-ref-form" novalidate onsubmit="return false;">
+        <div class="dlg-body"
+          style="padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);display:flex;flex-direction:column;gap:var(--md-sys-spacing-3);">
+          <div class="field" data-field="ref-name">
+            <label for="ref-doc-name">Doctor / Referrer Name<span class="req" aria-hidden="true">*</span></label>
+            <input type="text" id="ref-doc-name" name="name" placeholder="e.g. Dr. A. K. Sharma / Metro Clinic"
+              autocomplete="off" required>
+            <span class="err" id="ref-doc-name-err" role="alert"
+              style="display:none;color:var(--md-sys-color-error,#b3261e);font-size:12px;margin-top:2px;"></span>
+          </div>
+          <div class="field" data-field="ref-contact">
+            <label for="ref-doc-contact">Contact Number<span class="req" aria-hidden="true">*</span></label>
+            <input type="tel" id="ref-doc-contact" name="contact" maxlength="10" placeholder="10-digit mobile number"
+              autocomplete="off" required>
+            <span class="err" id="ref-doc-contact-err" role="alert"
+              style="display:none;color:var(--md-sys-color-error,#b3261e);font-size:12px;margin-top:2px;"></span>
+          </div>
+        </div>
+        <div class="dlg-foot"
+          style="display:flex;justify-content:flex-end;gap:8px;padding:var(--md-sys-spacing-3) var(--md-sys-spacing-5);">
+          <button type="button" class="btn btn-text" id="add-ref-cancel">Cancel</button>
+          <button type="button" class="btn btn-filled" id="add-ref-submit">Save Doctor</button>
+        </div>
+      </form>
     </div>
-    <form id="add-ref-form" novalidate onsubmit="return false;">
-      <div class="dlg-body" style="padding:var(--md-sys-spacing-4) var(--md-sys-spacing-5);display:flex;flex-direction:column;gap:var(--md-sys-spacing-3);">
-        <div class="field" data-field="ref-name">
-          <label for="ref-doc-name">Doctor / Referrer Name<span class="req" aria-hidden="true">*</span></label>
-          <input type="text" id="ref-doc-name" name="name" placeholder="e.g. Dr. A. K. Sharma / Metro Clinic" autocomplete="off" required>
-          <span class="err" id="ref-doc-name-err" role="alert" style="display:none;color:var(--md-sys-color-error,#b3261e);font-size:12px;margin-top:2px;"></span>
-        </div>
-        <div class="field" data-field="ref-contact">
-          <label for="ref-doc-contact">Contact Number<span class="req" aria-hidden="true">*</span></label>
-          <input type="tel" id="ref-doc-contact" name="contact" maxlength="10" placeholder="10-digit mobile number" autocomplete="off" required>
-          <span class="err" id="ref-doc-contact-err" role="alert" style="display:none;color:var(--md-sys-color-error,#b3261e);font-size:12px;margin-top:2px;"></span>
-        </div>
-      </div>
-      <div class="dlg-foot" style="display:flex;justify-content:flex-end;gap:8px;padding:var(--md-sys-spacing-3) var(--md-sys-spacing-5);">
-        <button type="button" class="btn btn-text" id="add-ref-cancel">Cancel</button>
-        <button type="button" class="btn btn-filled" id="add-ref-submit">Save Doctor</button>
-      </div>
-    </form>
   </div>
-</div>
   <!-- Vitals Modal Dialog (V2 MD3 Design System) -->
-<div class="dlg-scrim" id="vt-dlg" hidden>
-  <div class="dlg vt" role="dialog" aria-modal="true" aria-labelledby="vt-h">
-    <div class="dlg-head">
-      <div>
-        <h2 class="dlg-title" id="vt-h">Add vitals</h2>
-        <p class="dlg-sub" id="vt-sub"></p>
+  <div class="dlg-scrim" id="vt-dlg" hidden>
+    <div class="dlg vt" role="dialog" aria-modal="true" aria-labelledby="vt-h">
+      <div class="dlg-head">
+        <div>
+          <h2 class="dlg-title" id="vt-h">Add vitals</h2>
+          <p class="dlg-sub" id="vt-sub"></p>
+        </div>
+        <button type="button" class="icon-btn" id="vt-x" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
-      <button type="button" class="icon-btn" id="vt-x" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
-    <div class="vt-body">
-      <div class="vt-h2">Reading now<span class="vt-bmi" id="vt-bmi" hidden>BMI <b></b><i>kg/m&sup2;</i></span></div>
-      <div class="vgrid" id="vt-grid">
-        <label class="vf vbp">
-          <span class="vt-tag">BP<span class="unit">mmHg</span></span>
-          <input type="text" id="vtBPs" inputmode="numeric" placeholder="SBP" aria-label="Systolic BP, mmHg" autocomplete="off">
-          <span class="sep" aria-hidden="true">/</span>
-          <input type="text" id="vtBPd" inputmode="numeric" placeholder="DBP" aria-label="Diastolic BP, mmHg" autocomplete="off">
-        </label>
-        <label class="vf">
-          <span class="vt-tag">Pulse<span class="unit">bpm</span></span>
-          <input type="text" id="vtPulse" inputmode="numeric" autocomplete="off">
-        </label>
-        <label class="vf">
-          <span class="vt-tag">R/R<span class="unit">/min</span></span>
-          <input type="text" id="vtRR" inputmode="numeric" autocomplete="off">
-        </label>
-        <label class="vf">
-          <span class="vt-tag">Temp<span class="unit">&deg;F</span></span>
-          <input type="text" id="vtTemp" inputmode="decimal" autocomplete="off">
-        </label>
-        <label class="vf">
-          <span class="vt-tag">Sat<span class="unit">%</span></span>
-          <input type="text" id="vtSat" inputmode="numeric" autocomplete="off">
-        </label>
-        <label class="vf" id="vt-fHt"></label>
-        <label class="vf">
-          <span class="vt-tag">Weight<span class="unit">kg</span></span>
-          <input type="text" id="vtWt" inputmode="decimal" autocomplete="off">
-        </label>
+      <div class="vt-body">
+        <div class="vt-h2">Reading now<span class="vt-bmi" id="vt-bmi" hidden>BMI <b></b><i>kg/m&sup2;</i></span></div>
+        <div class="vgrid" id="vt-grid">
+          <label class="vf vbp">
+            <span class="vt-tag">BP<span class="unit">mmHg</span></span>
+            <input type="text" id="vtBPs" inputmode="numeric" placeholder="SBP" aria-label="Systolic BP, mmHg"
+              autocomplete="off">
+            <span class="sep" aria-hidden="true">/</span>
+            <input type="text" id="vtBPd" inputmode="numeric" placeholder="DBP" aria-label="Diastolic BP, mmHg"
+              autocomplete="off">
+          </label>
+          <label class="vf">
+            <span class="vt-tag">Pulse<span class="unit">bpm</span></span>
+            <input type="text" id="vtPulse" inputmode="numeric" autocomplete="off">
+          </label>
+          <label class="vf">
+            <span class="vt-tag">R/R<span class="unit">/min</span></span>
+            <input type="text" id="vtRR" inputmode="numeric" autocomplete="off">
+          </label>
+          <label class="vf">
+            <span class="vt-tag">Temp<span class="unit">&deg;F</span></span>
+            <input type="text" id="vtTemp" inputmode="decimal" autocomplete="off">
+          </label>
+          <label class="vf">
+            <span class="vt-tag">Sat<span class="unit">%</span></span>
+            <input type="text" id="vtSat" inputmode="numeric" autocomplete="off">
+          </label>
+          <label class="vf" id="vt-fHt"></label>
+          <label class="vf">
+            <span class="vt-tag">Weight<span class="unit">kg</span></span>
+            <input type="text" id="vtWt" inputmode="decimal" autocomplete="off">
+          </label>
+        </div>
+        <!-- height is kept in cm whatever the desk typed it in -->
+        <input type="hidden" id="vtHt">
+        <div class="vt-logs">
+          <div class="vt-h2">Vitals logs<span class="vt-count" id="vt-count"></span></div>
+          <div class="vt-tw" id="vt-tw"></div>
+        </div>
       </div>
-      <!-- height is kept in cm whatever the desk typed it in -->
-      <input type="hidden" id="vtHt">
-      <div class="vt-logs">
-        <div class="vt-h2">Vitals logs<span class="vt-count" id="vt-count"></span></div>
-        <div class="vt-tw" id="vt-tw"></div>
+      <div class="dlg-foot vt-foot">
+        <span class="vt-err" id="vt-err" role="alert"></span>
+        <button type="button" class="btn btn-text" id="vt-cancel">Cancel</button>
+        <button type="button" class="btn btn-filled" id="vt-save">Save vitals</button>
       </div>
-    </div>
-    <div class="dlg-foot vt-foot">
-      <span class="vt-err" id="vt-err" role="alert"></span>
-      <button type="button" class="btn btn-text" id="vt-cancel">Cancel</button>
-      <button type="button" class="btn btn-filled" id="vt-save">Save vitals</button>
     </div>
   </div>
-</div>
 
 
   <!-- Toast notification snackbar -->
@@ -835,8 +1028,8 @@
 
   <!-- Global context & routes -->
   <script>
-    window.INITIAL_DATA = {"doctors":[{"id":"2","name":"Test Doctor","spec":"General","specialization":"General"}],"specs":["General"],"categories":{"1":"Cash"},"cash_category_id":1,"titles":["Mr.","Mrs.","Ms.","Baby"],"genders":["Male","Female","Transgender","Other"],"services":[{"id":7,"service_id":7,"name":"Test service","service_name":"Test service","charges":200,"price":{"1":200}}],"consult_service_id":5,"reg_service_id":6,"ref_users":[],"is_ref_by_enabled":false,"refund_approval_system":false,"is_admin":false,"user_name":"Test Staff","disc_auth_users":[{"id":"9","name":"Test Staff"}]};
-    window.USER_PERMISSIONS = {"is_admin":false,"patient":{"can_create":true},"opd_visits":{"can_create":true,"can_read":true},"opd_billing":{"can_create":true,"can_read":true,"can_update":true},"opd_discount":{"can_update":true}};
+    window.INITIAL_DATA = { "doctors": [{ "id": "2", "name": "Test Doctor", "spec": "General", "specialization": "General" }], "specs": ["General"], "categories": { "1": "Cash" }, "cash_category_id": 1, "titles": ["Mr.", "Mrs.", "Ms.", "Baby"], "genders": ["Male", "Female", "Transgender", "Other"], "services": [{ "id": 7, "service_id": 7, "name": "Test service", "service_name": "Test service", "charges": 200, "price": { "1": 200 } }], "consult_service_id": 5, "reg_service_id": 6, "ref_users": [], "is_ref_by_enabled": false, "refund_approval_system": false, "is_admin": false, "user_name": "Test Staff", "disc_auth_users": [{ "id": "9", "name": "Test Staff" }] };
+    window.USER_PERMISSIONS = { "is_admin": false, "patient": { "can_create": true }, "opd_visits": { "can_create": true, "can_read": true }, "opd_billing": { "can_create": true, "can_read": true, "can_update": true }, "opd_discount": { "can_update": true } };
     window.ROUTES = {
       saveVisit: "http://127.0.0.1:8098/visit/save",
       registerBillingPatient: "http://127.0.0.1:8098/v2/billing/register-patient",
@@ -879,5 +1072,5 @@
   <script src="http://127.0.0.1:8098/assets/js/v2/billing-patient.js?v=1794712429" charset="utf-8"></script>
   <script src="http://127.0.0.1:8098/assets/js/v2/opd-billing.js?v=1794712429" charset="utf-8"></script>
 </body>
-</html>
 
+</html>

@@ -154,9 +154,9 @@
 @@ -178,7 +185,7 @@
                @endphp
  
-               <!-- Reused OPD Billing Component -->
--              <x-v2.registration.billing-step stepNumber="" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
-+              <x-v2.registration.billing-step stepNumber="3" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
+               <!-- Reused Billing Component -->
+-              <x-v2.registration.billing-step stepNumber="" title="Billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
++              <x-v2.registration.billing-step stepNumber="3" title="Billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />
  
                <!-- Cancellation Panel -->
                <section class="panel sec sec-x" id="sec-cancel" aria-labelledby="t-cancel" hidden>

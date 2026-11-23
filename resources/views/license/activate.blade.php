@@ -247,7 +247,7 @@
                 </div>
                 <div class="text-center mb-4">
                     <a href="{{ route('lab.billing.index') }}" class="btn btn-outline-primary btn-sm">
-                        <i class="uil uil-arrow-left"></i> Return to OPD Billing Dashboard
+                        <i class="uil uil-arrow-left"></i> Return to Billing Dashboard
                     </a>
                 </div>
             @endif

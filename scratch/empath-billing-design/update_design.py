@@ -17,10 +17,10 @@ s = replace_once(s, '      <x-v2.topbar :show-hospital-name="false">', '''      
         <x-slot:left><nav class="billing-main-nav" aria-label="Patient navigation">@yield('nav-actions')</nav></x-slot:left>
       </x-v2.topbar>
       <div class="billing-pagebar">
-        <h1><i class="uil uil-file-alt" aria-hidden="true"></i>OPD Billing</h1>''')
+        <h1><i class="uil uil-file-alt" aria-hidden="true"></i>Billing</h1>''')
 s = replace_once(s, '        </div>\n      </x-v2.topbar>', '        </div>\n      </div>')
-s = replace_once(s, '''              <!-- Reused OPD Billing Component -->
-              <x-v2.registration.billing-step stepNumber="3" title="OPD billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />''', '''              <x-v2.billing.workspace :discAuthUsers="$discAuthUsers" />''')
+s = replace_once(s, '''              <!-- Reused Billing Component -->
+              <x-v2.registration.billing-step stepNumber="3" title="Billing" emptyText="Add the consultation above, or search a service to add it to the bill." :discAuthUsers="$discAuthUsers" />''', '''              <x-v2.billing.workspace :discAuthUsers="$discAuthUsers" />''')
 start = s.index('          <!-- Sticky Bottom Action Bar -->')
 end = s.index('        </section>', start)
 s = s[:start] + s[end:]
@@ -43,7 +43,7 @@ s = replace_once(s, '''      $ul.html('<li class="sv-none">No service matches "'
 s = replace_once(s, "data-svc=\"' + sId + '\"", "data-svc=\"' + esc(sId) + '\"")
 s = replace_once(s, '''    $ul.attr('hidden', true);
     $q.attr('aria-expanded', 'false').removeAttr('aria-activedescendant');''', '''    $q.removeAttr('aria-activedescendant');
-    // The service catalogue stays visible below the bill, like legacy OPD billing.
+    // The service catalogue stays visible below the bill, like legacy Billing.
     if ($('#sec-bill').is(':visible')) return;
     $ul.attr('hidden', true);
     $q.attr('aria-expanded', 'false');''')

@@ -1,6 +1,6 @@
 @extends('lab.layouts.app')
 
-@section('title', 'OPD Billing Desk | Rahul Clinic & Laboratory')
+@section('title', 'Billing Desk | ')
 @section('context', 'billing')
 
 @section('content')
@@ -15,7 +15,7 @@
     <!-- Page Title & Header Bar -->
     <!-- <div class="opd-page-header">
         <h5 class="opd-page-title">
-            <i class="uil uil-file-alt"></i> OPD Billing Desk
+            <i class="uil uil-file-alt"></i> Billing Desk
         </h5>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-white text-dark border px-2 py-1" style="font-size: 11.5px;">
@@ -346,11 +346,11 @@
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge rounded-pill bg-teal text-white" id="badge-today-count">{{ $todayVisitsCount ?? 0 }}</span>
-                        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="btn-refresh-today-visits" title="Refresh List">
-                            <i class="uil uil-refresh"></i>
+                        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="btn-refresh-today-visits" title="Refresh List" style="color: #ffffff !important; border-color: rgba(255,255,255,0.4) !important; background-color: rgba(255,255,255,0.12) !important;">
+                            <i class="uil uil-refresh text-white"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 btn-collapse-arrow" id="btn-collapse-today-visits" title="Collapse to right side">
-                            <i class="uil uil-angle-right font-size-14"></i>
+                        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 btn-collapse-arrow" id="btn-collapse-today-visits" title="Collapse to right side" style="color: #ffffff !important; border-color: rgba(255,255,255,0.4) !important; background-color: rgba(255,255,255,0.12) !important;">
+                            <i class="uil uil-angle-right font-size-14 text-white"></i>
                         </button>
                     </div>
                 </div>

@@ -1,65 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Actions;
-
-use App\Domain\Lab\Models\LabPriceList;
-use App\Domain\Lab\Models\LabPriceListItem;
-use App\Models\Legacy\HospitalService;
-use App\Models\Legacy\HospitalServiceCharge;
-use Illuminate\Support\Facades\DB;
-
-class SaveTestPricing
-{
-    /**
-     * Save pricing across payer categories and dual-write to legacy tables.
-     *
-     * @param  array<string, float|int|numeric-string>  $pricingMap  [ 'general' => 350.0, 'tpa' => 300.0, ... ]
-     */
-    public function execute(HospitalService $service, array $pricingMap, float $itemCost = 0.0): HospitalService
-    {
-        return DB::transaction(function () use ($service, $pricingMap) {
-            $generalPrice = (float) ($pricingMap['general'] ?? 0.0);
-
-            // 1. Dual-write to legacy hospital_service_charges
-            HospitalServiceCharge::updateOrCreate(
-                [
-                    'hospital_id' => 1,
-                    'service' => $service->id,
-                ],
-                [
-                    'charges' => $generalPrice,
-                    'opd' => $generalPrice,
-                    'er_opd' => $generalPrice,
-                    'location_1' => $generalPrice,
-                    'is_active' => 1,
-                    'is_editable' => 1,
-                ]
-            );
-
-            // 2. Domain lab_price_lists and items
-            foreach ($pricingMap as $category => $charge) {
-                $categorySlug = strtolower(trim((string) $category));
-                $amount = (float) $charge;
-
-                $priceList = LabPriceList::firstOrCreate(
-                    ['payer_category' => $categorySlug],
-                    ['name' => ucfirst($categorySlug).' Price List', 'is_active' => true]
-                );
-
-                LabPriceListItem::updateOrCreate(
-                    [
-                        'price_list_id' => $priceList->id,
-                        'service_id' => $service->id,
-                    ],
-                    [
-                        'charge' => $amount,
-                    ]
-                );
-            }
-
-            return $service;
-        });
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:09              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Actions; use App\Domain\Lab\Models\LabPriceList; use App\Domain\Lab\Models\LabPriceListItem; use App\Models\Legacy\HospitalService; use App\Models\Legacy\HospitalServiceCharge; use Illuminate\Support\Facades\DB; class SaveTestPricing { public function execute(HospitalService $service, array $pricingMap, float $itemCost = 0.0): HospitalService { return DB::transaction(function () use ($service, $pricingMap) { $generalPrice = (float) ($pricingMap["\x67\x65\156\145\162\141\154"] ?? 0.0); HospitalServiceCharge::updateOrCreate(["\x68\157\x73\160\x69\164\141\154\137\x69\144" => 1, "\163\x65\x72\166\x69\143\x65" => $service->id], ["\143\150\141\162\x67\145\x73" => $generalPrice, "\157\160\144" => $generalPrice, "\145\x72\x5f\x6f\x70\x64" => $generalPrice, "\154\x6f\143\141\164\151\157\x6e\x5f\x31" => $generalPrice, "\151\x73\x5f\141\143\x74\151\166\x65" => 1, "\x69\x73\x5f\x65\144\151\164\141\x62\154\x65" => 1]); foreach ($pricingMap as $category => $charge) { $categorySlug = strtolower(trim((string) $category)); $amount = (float) $charge; $priceList = LabPriceList::firstOrCreate(["\x70\x61\x79\145\162\137\143\141\x74\145\x67\157\x72\x79" => $categorySlug], ["\156\141\x6d\x65" => ucfirst($categorySlug) . "\x20\120\162\x69\143\145\40\x4c\x69\x73\164", "\x69\x73\x5f\x61\x63\164\151\166\145" => true]); LabPriceListItem::updateOrCreate(["\x70\x72\x69\x63\145\x5f\154\x69\163\x74\137\x69\x64" => $priceList->id, "\163\x65\162\x76\151\143\x65\137\151\x64" => $service->id], ["\x63\150\141\x72\x67\x65" => $amount]); } return $service; }); } }

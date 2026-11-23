@@ -1,66 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Services;
-
-use App\Domain\Lab\Models\LabResultValue;
-use App\Domain\Lab\States\LabState;
-
-class DeltaChecker
-{
-    /**
-     * Compare a result value with the patient's previous historical value for the same parameter.
-     *
-     * @return array{previous_value: ?float, previous_date: ?string, absolute_delta: ?float, percent_delta: ?float, is_significant: bool}
-     */
-    public function check(int $patientId, int $parameterId, ?float $currentNumericValue, ?int $currentOrderItemId = null): array
-    {
-        if ($currentNumericValue === null) {
-            return [
-                'previous_value' => null,
-                'previous_date' => null,
-                'absolute_delta' => null,
-                'percent_delta' => null,
-                'is_significant' => false,
-            ];
-        }
-
-        // Find the most recent verified/released result value for the same patient and parameter
-        $previous = LabResultValue::query()
-            ->where('parameter_id', $parameterId)
-            ->whereNotNull('value_numeric')
-            ->when($currentOrderItemId, function ($query, $item) {
-                $query->where('order_item_id', '!=', $item);
-            })
-            ->whereHas('orderItem.order', function ($query) use ($patientId) {
-                $query->where('patient_id', $patientId)
-                    ->whereIn('status', [LabState::VERIFIED->value, LabState::RELEASED->value, LabState::RESULTED->value]);
-            })
-            ->latest('entered_at')
-            ->first();
-
-        if (! $previous || $previous->value_numeric === null) {
-            return [
-                'previous_value' => null,
-                'previous_date' => null,
-                'absolute_delta' => null,
-                'percent_delta' => null,
-                'is_significant' => false,
-            ];
-        }
-
-        $prevVal = (float) $previous->value_numeric;
-        $diff = $currentNumericValue - $prevVal;
-        $pct = $prevVal != 0.0 ? round(($diff / abs($prevVal)) * 100, 2) : 0.0;
-        $isSignificant = abs($pct) >= 50.0; // Alert if delta is 50% or more
-
-        return [
-            'previous_value' => $prevVal,
-            'previous_date' => $previous->entered_at ? $previous->entered_at->format('Y-m-d H:i') : null,
-            'absolute_delta' => round($diff, 4),
-            'percent_delta' => $pct,
-            'is_significant' => $isSignificant,
-        ];
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:10              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Services; use App\Domain\Lab\Models\LabResultValue; use App\Domain\Lab\States\LabState; class DeltaChecker { public function check(int $patientId, int $parameterId, ?float $currentNumericValue, ?int $currentOrderItemId = null): array { if ($currentNumericValue === null) { return ["\x70\x72\x65\166\x69\157\x75\163\x5f\x76\141\154\165\x65" => null, "\160\162\x65\x76\x69\x6f\x75\163\x5f\x64\141\164\145" => null, "\141\x62\x73\157\x6c\x75\x74\x65\x5f\x64\x65\154\164\x61" => null, "\x70\145\x72\143\x65\x6e\x74\x5f\x64\x65\x6c\x74\x61" => null, "\151\x73\137\x73\x69\x67\156\151\146\x69\x63\141\156\x74" => false]; } $previous = LabResultValue::query()->where("\x70\141\162\x61\155\145\164\x65\x72\x5f\151\x64", $parameterId)->whereNotNull("\166\x61\x6c\165\x65\x5f\x6e\x75\x6d\145\162\151\x63")->when($currentOrderItemId, function ($query, $item) { $query->where("\157\162\x64\145\162\x5f\151\x74\x65\x6d\x5f\x69\144", "\x21\x3d", $item); })->whereHas("\x6f\162\x64\145\x72\x49\x74\x65\155\x2e\x6f\162\x64\145\162", function ($query) use ($patientId) { $query->where("\x70\x61\x74\x69\x65\x6e\x74\x5f\x69\x64", $patientId)->whereIn("\163\164\x61\164\x75\x73", [LabState::VERIFIED->value, LabState::RELEASED->value, LabState::RESULTED->value]); })->latest("\145\x6e\164\145\162\x65\144\137\141\x74")->first(); if (!$previous || $previous->value_numeric === null) { return ["\160\162\145\x76\x69\x6f\165\163\137\166\141\x6c\x75\x65" => null, "\x70\x72\145\x76\151\157\x75\163\137\144\x61\164\145" => null, "\x61\142\x73\x6f\x6c\x75\x74\x65\137\x64\x65\x6c\164\141" => null, "\x70\145\162\143\145\156\164\137\x64\145\x6c\x74\141" => null, "\x69\163\137\163\151\147\x6e\x69\146\151\143\x61\156\x74" => false]; } $prevVal = (float) $previous->value_numeric; $diff = $currentNumericValue - $prevVal; $pct = $prevVal != 0.0 ? round($diff / abs($prevVal) * 100, 2) : 0.0; $isSignificant = abs($pct) >= 50.0; return ["\160\x72\x65\x76\151\x6f\165\x73\x5f\166\x61\x6c\x75\145" => $prevVal, "\x70\162\x65\166\x69\x6f\165\x73\137\144\x61\164\145" => $previous->entered_at ? $previous->entered_at->format("\x59\55\x6d\x2d\144\40\x48\x3a\151") : null, "\141\142\x73\x6f\x6c\165\x74\145\x5f\x64\x65\154\x74\141" => round($diff, 4), "\160\145\162\x63\145\156\x74\137\144\x65\x6c\x74\x61" => $pct, "\x69\x73\137\x73\151\147\x6e\151\146\151\143\x61\156\164" => $isSignificant]; } }

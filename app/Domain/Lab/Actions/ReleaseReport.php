@@ -1,71 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Actions;
-
-use App\Domain\Lab\Models\LabOrder;
-use App\Domain\Lab\Models\LabOrderEvent;
-use App\Domain\Lab\Models\LabReport;
-use App\Domain\Lab\Services\ReportRenderer;
-use App\Domain\Lab\States\LabState;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-
-class ReleaseReport
-{
-    public function __construct(
-        protected ReportRenderer $reportRenderer
-    ) {}
-
-    /**
-     * Release final diagnostic report and generate immutable stored PDF.
-     */
-    public function execute(int $orderId, int $verifiedBy, string $template = 'standard'): LabReport
-    {
-        return DB::transaction(function () use ($orderId, $verifiedBy, $template) {
-            $order = LabOrder::with(['items', 'patient', 'bill'])->lockForUpdate()->findOrFail($orderId);
-
-            $fromState = $order->status->value;
-            $order->status = LabState::RELEASED;
-            $order->save();
-
-            foreach ($order->items as $item) {
-                $item->status = LabState::RELEASED;
-                $item->save();
-            }
-
-            // Create or update version 1 report
-            $report = LabReport::firstOrCreate(
-                [
-                    'lab_order_id' => $order->id,
-                    'version' => 1,
-                ],
-                [
-                    'template' => $template,
-                    'verified_by' => $verifiedBy,
-                    'released_at' => Carbon::now(),
-                ]
-            );
-
-            // Generate immutable PDF and store SHA-256
-            $this->reportRenderer->renderAndStorePdf($order, $report);
-
-            // Audit log
-            LabOrderEvent::create([
-                'order_id' => $order->id,
-                'from_state' => $fromState,
-                'to_state' => LabState::RELEASED->value,
-                'user_id' => $verifiedBy,
-                'meta' => [
-                    'report_id' => $report->id,
-                    'version' => $report->version,
-                    'pdf_sha256' => $report->pdf_sha256,
-                    'released_at' => Carbon::now()->toIso8601String(),
-                ],
-            ]);
-
-            return $report;
-        });
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:08              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Actions; use App\Domain\Lab\Models\LabOrder; use App\Domain\Lab\Models\LabOrderEvent; use App\Domain\Lab\Models\LabReport; use App\Domain\Lab\Services\ReportRenderer; use App\Domain\Lab\States\LabState; use Carbon\Carbon; use Illuminate\Support\Facades\DB; class ReleaseReport { public function __construct(protected ReportRenderer $reportRenderer) { } public function execute(int $orderId, int $verifiedBy, string $template = "\163\x74\x61\x6e\x64\x61\x72\144"): LabReport { return DB::transaction(function () use ($orderId, $verifiedBy, $template) { $order = LabOrder::with(["\x69\164\x65\155\163", "\x70\141\164\151\145\156\164", "\142\x69\x6c\154"])->lockForUpdate()->findOrFail($orderId); $fromState = $order->status->value; $order->status = LabState::RELEASED; $order->save(); foreach ($order->items as $item) { $item->status = LabState::RELEASED; $item->save(); } $report = LabReport::firstOrCreate(["\x6c\141\142\x5f\157\x72\x64\x65\162\137\151\144" => $order->id, "\x76\145\x72\163\x69\157\156" => 1], ["\164\x65\x6d\x70\x6c\141\164\145" => $template, "\x76\145\x72\151\x66\x69\x65\144\x5f\142\171" => $verifiedBy, "\162\145\x6c\145\141\x73\145\x64\x5f\x61\164" => Carbon::now()]); $this->reportRenderer->renderAndStorePdf($order, $report); LabOrderEvent::create(["\157\162\144\145\162\137\x69\x64" => $order->id, "\x66\162\x6f\x6d\x5f\163\x74\141\x74\x65" => $fromState, "\164\157\137\x73\164\x61\164\x65" => LabState::RELEASED->value, "\165\x73\x65\162\x5f\x69\144" => $verifiedBy, "\155\145\164\x61" => ["\x72\145\160\x6f\162\164\137\151\144" => $report->id, "\166\145\x72\x73\x69\157\156" => $report->version, "\160\x64\146\x5f\163\150\141\62\65\66" => $report->pdf_sha256, "\162\x65\154\145\x61\163\145\144\137\141\164" => Carbon::now()->toIso8601String()]]); return $report; }); } }

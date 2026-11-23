@@ -1,41 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Http\Controllers;
-
-use App\Services\Licensing\LicenseManager;
-
-abstract class Controller
-{
-    /**
-     * Execute an action on the controller.
-     * Dual-layer license protection: Enforces licensing at the controller level
-     * even if someone removes the VerifyLicense middleware from bootstrap/app.php.
-     */
-    public function callAction($method, $parameters)
-    {
-        // Don't lock the license activation controller itself
-        if (! ($this instanceof LicenseController)) {
-            $status = LicenseManager::verify();
-
-            if (! $status['valid']) {
-                if (request()->expectsJson() || request()->is('api/*') || request()->is('lab/api/*')) {
-                    abort(response()->json([
-                        'success' => false,
-                        'error' => 'LICENSE_REQUIRED',
-                        'message' => $status['message'],
-                        'machine_id' => $status['current_machine_id'],
-                    ], 403));
-                }
-
-                return redirect()
-                    ->route('license.activate')
-                    ->with('license_error', $status['message'])
-                    ->with('license_code', $status['code']);
-            }
-        }
-
-        return $this->{$method}(...array_values($parameters));
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:08              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Http\Controllers; use App\Services\Licensing\LicenseManager; abstract class Controller { public function callAction($method, $parameters) { if (!$this instanceof LicenseController) { $status = LicenseManager::verify(); if (!$status["\166\141\154\151\x64"]) { if (request()->expectsJson() || request()->is("\x61\x70\x69\57\52") || request()->is("\x6c\141\142\x2f\141\160\x69\57\x2a")) { abort(response()->json(["\163\165\x63\143\x65\163\163" => false, "\145\x72\x72\157\x72" => "\x4c\111\x43\x45\x4e\x53\105\137\x52\x45\121\x55\x49\x52\x45\104", "\x6d\x65\x73\x73\141\x67\x65" => $status["\x6d\x65\x73\x73\141\147\145"], "\155\x61\x63\x68\151\156\x65\x5f\151\144" => $status["\143\165\x72\x72\x65\x6e\164\x5f\x6d\141\x63\150\x69\x6e\145\137\151\x64"]], 403)); } return redirect()->route("\154\151\143\x65\x6e\163\x65\56\x61\143\x74\x69\166\141\x74\145")->with("\x6c\x69\143\145\156\x73\x65\x5f\145\162\162\157\x72", $status["\x6d\145\163\163\x61\147\145"])->with("\154\151\x63\x65\x6e\163\x65\x5f\143\157\144\145", $status["\x63\x6f\x64\145"]); } } return $this->{$method}(...array_values($parameters)); } }

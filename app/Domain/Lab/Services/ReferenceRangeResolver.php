@@ -1,72 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Services;
-
-use App\Domain\Lab\Models\LabParameter;
-use App\Domain\Lab\Models\LabReferenceRange;
-
-class ReferenceRangeResolver
-{
-    /**
-     * Resolve the matched reference range for a parameter, age (days) and sex.
-     *
-     * @return array{low: ?float, high: ?float, critical_low: ?float, critical_high: ?float, text_range: ?string}
-     */
-    public function resolve(LabParameter|int $parameter, int $ageInDays, string $sex = 'both'): array
-    {
-        $parameterId = $parameter instanceof LabParameter ? $parameter->id : $parameter;
-        $normalizedSex = strtolower(trim($sex));
-        if (! in_array($normalizedSex, ['male', 'female'], true)) {
-            $normalizedSex = 'both';
-        }
-
-        // Try exact sex match
-        $range = LabReferenceRange::where('parameter_id', $parameterId)
-            ->where('sex', $normalizedSex)
-            ->where('age_from_days', '<=', $ageInDays)
-            ->where('age_to_days', '>=', $ageInDays)
-            ->first();
-
-        // Fallback to 'both'
-        if (! $range && $normalizedSex !== 'both') {
-            $range = LabReferenceRange::where('parameter_id', $parameterId)
-                ->where('sex', 'both')
-                ->where('age_from_days', '<=', $ageInDays)
-                ->where('age_to_days', '>=', $ageInDays)
-                ->first();
-        }
-
-        // Fallback to default range for parameter if any exists
-        if (! $range) {
-            $range = LabReferenceRange::where('parameter_id', $parameterId)->first();
-        }
-
-        if (! $range) {
-            return [
-                'low' => null,
-                'high' => null,
-                'critical_low' => null,
-                'critical_high' => null,
-                'text_range' => null,
-            ];
-        }
-
-        return [
-            'low' => $range->low !== null ? (float) $range->low : null,
-            'high' => $range->high !== null ? (float) $range->high : null,
-            'critical_low' => $range->critical_low !== null ? (float) $range->critical_low : null,
-            'critical_high' => $range->critical_high !== null ? (float) $range->critical_high : null,
-            'text_range' => $range->text_range,
-        ];
-    }
-
-    /**
-     * Convert age in years, months or days to total days.
-     */
-    public function calculateAgeInDays(int $ageYears, int $months = 0, int $days = 0): int
-    {
-        return ($ageYears * 365) + ($months * 30) + $days;
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:09              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Services; use App\Domain\Lab\Models\LabParameter; use App\Domain\Lab\Models\LabReferenceRange; class ReferenceRangeResolver { public function resolve(LabParameter|int $parameter, int $ageInDays, string $sex = "\142\157\164\150"): array { $parameterId = $parameter instanceof LabParameter ? $parameter->id : $parameter; $normalizedSex = strtolower(trim($sex)); if (!in_array($normalizedSex, ["\155\141\x6c\145", "\146\x65\155\141\154\x65"], true)) { $normalizedSex = "\142\157\x74\x68"; } $range = LabReferenceRange::where("\x70\x61\162\141\155\145\x74\145\162\x5f\151\x64", $parameterId)->where("\x73\x65\170", $normalizedSex)->where("\x61\147\145\137\146\x72\x6f\155\x5f\144\141\171\163", "\x3c\75", $ageInDays)->where("\x61\147\x65\137\x74\x6f\137\x64\x61\171\x73", "\x3e\75", $ageInDays)->first(); if (!$range && $normalizedSex !== "\142\157\164\150") { $range = LabReferenceRange::where("\x70\x61\162\x61\x6d\x65\x74\x65\162\137\x69\144", $parameterId)->where("\163\x65\170", "\x62\x6f\x74\150")->where("\141\x67\x65\x5f\146\162\157\x6d\137\x64\x61\x79\x73", "\74\75", $ageInDays)->where("\141\147\145\137\x74\x6f\x5f\x64\141\171\163", "\76\75", $ageInDays)->first(); } if (!$range) { $range = LabReferenceRange::where("\x70\x61\x72\141\x6d\145\x74\x65\162\x5f\x69\144", $parameterId)->first(); } if (!$range) { return ["\154\157\x77" => null, "\x68\x69\x67\150" => null, "\143\x72\151\x74\x69\143\141\154\x5f\154\x6f\167" => null, "\143\162\151\164\x69\x63\x61\x6c\x5f\x68\151\147\x68" => null, "\x74\x65\x78\164\137\162\141\156\147\x65" => null]; } return ["\154\157\167" => $range->low !== null ? (float) $range->low : null, "\150\x69\x67\150" => $range->high !== null ? (float) $range->high : null, "\x63\x72\151\x74\x69\143\141\x6c\x5f\x6c\x6f\167" => $range->critical_low !== null ? (float) $range->critical_low : null, "\143\x72\151\x74\x69\143\141\x6c\x5f\150\x69\147\x68" => $range->critical_high !== null ? (float) $range->critical_high : null, "\x74\145\170\x74\137\162\141\156\x67\145" => $range->text_range]; } public function calculateAgeInDays(int $ageYears, int $months = 0, int $days = 0): int { return $ageYears * 365 + $months * 30 + $days; } }

@@ -1,73 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Http\Controllers;
-
-use App\Services\Licensing\HardwareFingerprint;
-use App\Services\Licensing\LicenseManager;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-
-class LicenseController extends Controller
-{
-    /**
-     * Show the license activation / management screen.
-     */
-    public function activate(): View
-    {
-        $status = LicenseManager::verify(true);
-        $machineId = HardwareFingerprint::getMachineId();
-
-        return view('license.activate', [
-            'status' => $status,
-            'machineId' => $machineId,
-        ]);
-    }
-
-    /**
-     * Process license submission (file upload or pasted string).
-     */
-    public function submit(Request $request): RedirectResponse
-    {
-        $content = '';
-
-        if ($request->hasFile('license_file')) {
-            $file = $request->file('license_file');
-            if ($file && $file->isValid()) {
-                $content = (string) file_get_contents($file->getRealPath());
-            }
-        } elseif ($request->filled('license_key')) {
-            $content = (string) $request->input('license_key');
-        }
-
-        if (empty(trim($content))) {
-            return redirect()
-                ->route('license.activate')
-                ->with('error', 'Please provide a license file or paste the license key block.');
-        }
-
-        $result = LicenseManager::install($content);
-
-        if ($result['success']) {
-            return redirect()
-                ->route('lab.billing.index')
-                ->with('success', $result['message']);
-        }
-
-        return redirect()
-            ->route('license.activate')
-            ->with('error', $result['message']);
-    }
-
-    /**
-     * Return machine ID as JSON.
-     */
-    public function machineId(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'machine_id' => HardwareFingerprint::getMachineId(),
-        ]);
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:08              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Http\Controllers; use App\Services\Licensing\HardwareFingerprint; use App\Services\Licensing\LicenseManager; use Illuminate\Http\RedirectResponse; use Illuminate\Http\Request; use Illuminate\View\View; class LicenseController extends Controller { public function activate(): View { $status = LicenseManager::verify(true); $machineId = HardwareFingerprint::getMachineId(); return view("\154\151\x63\145\x6e\163\x65\56\141\143\164\151\x76\x61\164\x65", ["\x73\164\141\x74\x75\x73" => $status, "\155\x61\x63\150\151\x6e\145\x49\x64" => $machineId]); } public function submit(Request $request): RedirectResponse { $content = ''; if ($request->hasFile("\154\x69\143\145\x6e\163\145\137\146\x69\x6c\x65")) { $file = $request->file("\154\x69\143\145\x6e\x73\x65\137\x66\151\x6c\x65"); if ($file && $file->isValid()) { $content = (string) file_get_contents($file->getRealPath()); } } elseif ($request->filled("\154\x69\143\145\x6e\163\x65\x5f\x6b\x65\171")) { $content = (string) $request->input("\x6c\x69\x63\x65\156\x73\145\137\153\145\171"); } if (empty(trim($content))) { return redirect()->route("\154\x69\x63\145\x6e\163\x65\x2e\141\x63\164\x69\166\141\164\145")->with("\x65\x72\162\157\162", "\x50\x6c\x65\x61\163\145\40\160\x72\157\166\151\144\x65\40\141\x20\x6c\151\x63\145\156\163\x65\x20\146\151\154\145\x20\157\162\x20\x70\x61\163\164\145\40\164\150\x65\x20\154\x69\x63\145\156\163\x65\x20\x6b\145\171\x20\142\x6c\x6f\x63\153\x2e"); } $result = LicenseManager::install($content); if ($result["\x73\165\x63\x63\x65\163\163"]) { return redirect()->route("\154\x61\x62\56\142\151\154\154\x69\x6e\147\56\151\x6e\x64\145\170")->with("\163\x75\143\143\x65\x73\163", $result["\155\x65\x73\x73\x61\147\145"]); } return redirect()->route("\154\151\x63\145\156\163\x65\x2e\141\143\x74\x69\x76\x61\x74\x65")->with("\145\x72\x72\157\162", $result["\155\x65\x73\x73\141\147\145"]); } public function machineId(): \Illuminate\Http\JsonResponse { return response()->json(["\155\141\143\150\x69\156\x65\x5f\x69\144" => HardwareFingerprint::getMachineId()]); } }

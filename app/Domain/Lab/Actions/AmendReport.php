@@ -1,78 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Actions;
-
-use App\Domain\Lab\Models\LabOrder;
-use App\Domain\Lab\Models\LabOrderEvent;
-use App\Domain\Lab\Models\LabReport;
-use App\Domain\Lab\Services\ReportRenderer;
-use App\Domain\Lab\States\LabState;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
-
-class AmendReport
-{
-    public function __construct(
-        protected ReportRenderer $reportRenderer
-    ) {}
-
-    /**
-     * Create an amended version (N+1) of a released report with mandatory reason.
-     */
-    public function execute(int $orderId, int $amendedBy, string $reason): LabReport
-    {
-        return DB::transaction(function () use ($orderId, $amendedBy, $reason) {
-            $reason = trim($reason);
-            if (strlen($reason) < 5) {
-                throw ValidationException::withMessages([
-                    'amend_reason' => ['A detailed clinical/technical reason is mandatory for report amendments.'],
-                ]);
-            }
-
-            $order = LabOrder::with(['reports', 'items.service', 'patient'])->lockForUpdate()->findOrFail($orderId);
-
-            if ($order->status !== LabState::RELEASED) {
-                throw ValidationException::withMessages([
-                    'order' => ['Only released reports can be amended.'],
-                ]);
-            }
-
-            /** @var LabReport $latestReport */
-            $latestReport = $order->reports()->orderByDesc('version')->firstOrFail();
-            $newVersion = $latestReport->version + 1;
-
-            $amendedReport = LabReport::create([
-                'lab_order_id' => $order->id,
-                'version' => $newVersion,
-                'template' => $latestReport->template,
-                'verified_by' => $amendedBy,
-                'released_at' => Carbon::now(),
-                'amended_from_id' => $latestReport->id,
-                'amend_reason' => $reason,
-            ]);
-
-            // Render amended PDF and store with SHA-256
-            $this->reportRenderer->renderAndStorePdf($order, $amendedReport);
-
-            // Audit log
-            LabOrderEvent::create([
-                'order_id' => $order->id,
-                'from_state' => LabState::RELEASED->value,
-                'to_state' => LabState::RELEASED->value,
-                'user_id' => $amendedBy,
-                'meta' => [
-                    'action' => 'amended_report',
-                    'previous_version' => $latestReport->version,
-                    'new_version' => $newVersion,
-                    'amend_reason' => $reason,
-                    'new_pdf_sha256' => $amendedReport->pdf_sha256,
-                ],
-            ]);
-
-            return $amendedReport;
-        });
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:09              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Actions; use App\Domain\Lab\Models\LabOrder; use App\Domain\Lab\Models\LabOrderEvent; use App\Domain\Lab\Models\LabReport; use App\Domain\Lab\Services\ReportRenderer; use App\Domain\Lab\States\LabState; use Carbon\Carbon; use Illuminate\Support\Facades\DB; use Illuminate\Validation\ValidationException; class AmendReport { public function __construct(protected ReportRenderer $reportRenderer) { } public function execute(int $orderId, int $amendedBy, string $reason): LabReport { return DB::transaction(function () use ($orderId, $amendedBy, $reason) { $reason = trim($reason); if (strlen($reason) < 5) { throw ValidationException::withMessages(["\x61\x6d\145\156\x64\137\162\x65\x61\x73\157\156" => ["\101\40\144\145\164\141\151\154\x65\x64\x20\x63\154\151\156\151\143\x61\154\x2f\164\x65\143\x68\x6e\151\x63\141\x6c\x20\162\x65\141\163\x6f\156\x20\151\163\x20\155\x61\x6e\x64\141\164\157\x72\171\x20\x66\x6f\x72\x20\x72\145\160\x6f\162\164\x20\x61\x6d\145\156\144\x6d\x65\x6e\164\163\x2e"]]); } $order = LabOrder::with(["\162\145\160\157\x72\x74\163", "\151\x74\x65\155\163\x2e\x73\145\x72\166\151\143\145", "\x70\141\164\x69\145\x6e\x74"])->lockForUpdate()->findOrFail($orderId); if ($order->status !== LabState::RELEASED) { throw ValidationException::withMessages(["\157\162\144\x65\162" => ["\x4f\x6e\154\x79\x20\x72\x65\x6c\x65\x61\163\145\x64\40\162\x65\160\157\162\x74\x73\x20\x63\141\x6e\x20\142\145\x20\x61\x6d\x65\156\144\x65\144\56"]]); } $latestReport = $order->reports()->orderByDesc("\166\145\162\163\151\157\156")->firstOrFail(); $newVersion = $latestReport->version + 1; $amendedReport = LabReport::create(["\154\x61\142\x5f\x6f\x72\144\x65\162\137\151\144" => $order->id, "\166\x65\162\163\x69\x6f\156" => $newVersion, "\164\x65\155\x70\154\x61\164\x65" => $latestReport->template, "\166\145\x72\151\x66\x69\x65\144\x5f\x62\171" => $amendedBy, "\x72\x65\x6c\145\x61\x73\x65\144\137\141\x74" => Carbon::now(), "\141\x6d\145\156\144\145\144\x5f\146\162\157\x6d\x5f\151\x64" => $latestReport->id, "\x61\x6d\x65\x6e\x64\x5f\x72\145\141\163\x6f\156" => $reason]); $this->reportRenderer->renderAndStorePdf($order, $amendedReport); LabOrderEvent::create(["\157\x72\x64\x65\162\x5f\x69\144" => $order->id, "\x66\162\157\x6d\x5f\163\164\141\164\145" => LabState::RELEASED->value, "\x74\x6f\137\163\164\141\x74\145" => LabState::RELEASED->value, "\x75\x73\145\x72\x5f\x69\x64" => $amendedBy, "\155\145\x74\x61" => ["\x61\143\x74\151\x6f\156" => "\x61\155\x65\156\144\145\144\137\x72\x65\160\x6f\162\164", "\x70\x72\x65\166\151\x6f\x75\x73\137\166\145\x72\x73\151\x6f\x6e" => $latestReport->version, "\156\145\x77\137\166\x65\x72\163\x69\157\156" => $newVersion, "\x61\155\145\x6e\x64\x5f\x72\x65\x61\163\x6f\x6e" => $reason, "\156\145\x77\x5f\160\x64\x66\x5f\x73\150\141\x32\65\x36" => $amendedReport->pdf_sha256]]); return $amendedReport; }); } }

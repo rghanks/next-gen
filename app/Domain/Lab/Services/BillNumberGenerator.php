@@ -1,71 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Services;
-
-use App\Domain\Lab\Models\LabBillSequence;
-use Carbon\Carbon;
-
-class BillNumberGenerator
-{
-    /**
-     * Get the current financial year string (e.g., "2026-27" if April-March, or current year).
-     */
-    public function currentFinancialYear(?Carbon $date = null): string
-    {
-        $date = $date ?? Carbon::now();
-        $year = (int) $date->format('Y');
-        $month = (int) $date->format('n');
-
-        // Indian Financial Year: April 1 to March 31
-        if ($month >= 4) {
-            $nextYear = ($year + 1) % 100;
-
-            return sprintf('%d-%02d', $year, $nextYear);
-        }
-
-        $prevYear = $year - 1;
-        $currentYearShort = $year % 100;
-
-        return sprintf('%d-%02d', $prevYear, $currentYearShort);
-    }
-
-    /**
-     * Generate the next concurrency-safe bill sequence number within an active transaction.
-     */
-    public function nextNumber(string $prefix = 'LB', ?string $financialYear = null): int
-    {
-        $fy = $financialYear ?? $this->currentFinancialYear();
-
-        $sequence = LabBillSequence::where('prefix', $prefix)
-            ->where('financial_year', $fy)
-            ->lockForUpdate()
-            ->first();
-
-        if (! $sequence) {
-            $sequence = LabBillSequence::create([
-                'prefix' => $prefix,
-                'financial_year' => $fy,
-                'last_number' => 0,
-            ]);
-            // Re-lock
-            $sequence = LabBillSequence::where('id', $sequence->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-        }
-
-        $sequence->last_number += 1;
-        $sequence->save();
-
-        return (int) $sequence->last_number;
-    }
-
-    /**
-     * Format a display bill number (e.g., "LB/26-27/000123").
-     */
-    public function formatBillNumber(string $prefix, string $fy, int $number): string
-    {
-        return sprintf('%s/%s/%06d', $prefix, $fy, $number);
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:09              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Services; use App\Domain\Lab\Models\LabBillSequence; use Carbon\Carbon; class BillNumberGenerator { public function currentFinancialYear(?Carbon $date = null): string { $date = $date ?? Carbon::now(); $year = (int) $date->format("\131"); $month = (int) $date->format("\x6e"); if ($month >= 4) { $nextYear = ($year + 1) % 100; return sprintf("\45\x64\55\45\60\62\x64", $year, $nextYear); } $prevYear = $year - 1; $currentYearShort = $year % 100; return sprintf("\45\144\x2d\x25\60\x32\x64", $prevYear, $currentYearShort); } public function nextNumber(string $prefix = "\114\x42", ?string $financialYear = null): int { $fy = $financialYear ?? $this->currentFinancialYear(); $sequence = LabBillSequence::where("\160\162\145\146\x69\x78", $prefix)->where("\x66\x69\156\141\x6e\x63\x69\x61\x6c\x5f\x79\x65\141\162", $fy)->lockForUpdate()->first(); if (!$sequence) { $sequence = LabBillSequence::create(["\x70\162\x65\x66\151\170" => $prefix, "\x66\x69\156\x61\x6e\x63\151\x61\x6c\x5f\x79\145\141\x72" => $fy, "\x6c\x61\163\x74\137\x6e\165\155\142\x65\162" => 0]); $sequence = LabBillSequence::where("\x69\x64", $sequence->id)->lockForUpdate()->firstOrFail(); } $sequence->last_number += 1; $sequence->save(); return (int) $sequence->last_number; } public function formatBillNumber(string $prefix, string $fy, int $number): string { return sprintf("\x25\163\x2f\45\163\x2f\45\x30\66\144", $prefix, $fy, $number); } }

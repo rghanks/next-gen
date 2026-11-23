@@ -1,66 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Lab\Actions;
-
-use App\Domain\Lab\Models\LabOrder;
-use App\Domain\Lab\Models\LabOrderEvent;
-use App\Domain\Lab\States\LabState;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
-
-class ValidateResults
-{
-    /**
-     * Technician first-step sign-off on entered results.
-     */
-    public function execute(int $orderId, int $userId): LabOrder
-    {
-        return DB::transaction(function () use ($orderId, $userId) {
-            $order = LabOrder::with(['items.resultValues'])->lockForUpdate()->findOrFail($orderId);
-
-            if (! in_array($order->status, [LabState::RESULTED, LabState::IN_PROCESS], true)) {
-                throw ValidationException::withMessages([
-                    'order' => ['Only resulted orders can be validated by technician.'],
-                ]);
-            }
-
-            $fromState = $order->status->value;
-
-            // Check that at least one result value exists
-            $totalResults = 0;
-            foreach ($order->items as $item) {
-                $totalResults += $item->resultValues->count();
-            }
-
-            if ($totalResults === 0) {
-                throw ValidationException::withMessages([
-                    'order' => ['Cannot validate an order with no entered result values.'],
-                ]);
-            }
-
-            $order->status = LabState::RESULTED;
-            $order->save();
-
-            foreach ($order->items as $item) {
-                $item->status = LabState::RESULTED;
-                $item->save();
-            }
-
-            LabOrderEvent::create([
-                'order_id' => $order->id,
-                'from_state' => $fromState,
-                'to_state' => LabState::RESULTED->value,
-                'user_id' => $userId,
-                'meta' => [
-                    'step' => 'technician_validation',
-                    'validated_at' => Carbon::now()->toIso8601String(),
-                ],
-            ]);
-
-            return $order;
-        });
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:08              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Domain\Lab\Actions; use App\Domain\Lab\Models\LabOrder; use App\Domain\Lab\Models\LabOrderEvent; use App\Domain\Lab\States\LabState; use Carbon\Carbon; use Illuminate\Support\Facades\DB; use Illuminate\Validation\ValidationException; class ValidateResults { public function execute(int $orderId, int $userId): LabOrder { return DB::transaction(function () use ($orderId, $userId) { $order = LabOrder::with(["\x69\164\x65\155\163\x2e\x72\x65\163\165\x6c\164\126\x61\154\x75\145\163"])->lockForUpdate()->findOrFail($orderId); if (!in_array($order->status, [LabState::RESULTED, LabState::IN_PROCESS], true)) { throw ValidationException::withMessages(["\x6f\162\x64\145\162" => ["\x4f\156\154\x79\40\x72\145\163\x75\x6c\x74\x65\144\40\157\x72\x64\x65\162\x73\40\x63\x61\x6e\40\142\x65\40\x76\x61\x6c\151\144\141\x74\x65\x64\x20\x62\171\x20\164\145\x63\150\x6e\151\143\151\141\156\56"]]); } $fromState = $order->status->value; $totalResults = 0; foreach ($order->items as $item) { $totalResults += $item->resultValues->count(); } if ($totalResults === 0) { throw ValidationException::withMessages(["\157\x72\144\145\x72" => ["\103\x61\156\x6e\x6f\x74\40\166\x61\x6c\x69\x64\x61\x74\x65\40\141\156\40\157\162\x64\145\162\40\167\x69\x74\x68\x20\x6e\157\40\x65\156\164\145\x72\145\144\x20\162\145\x73\x75\154\x74\x20\x76\x61\x6c\x75\x65\x73\56"]]); } $order->status = LabState::RESULTED; $order->save(); foreach ($order->items as $item) { $item->status = LabState::RESULTED; $item->save(); } LabOrderEvent::create(["\157\x72\144\145\x72\137\151\x64" => $order->id, "\146\x72\157\155\137\x73\164\141\x74\x65" => $fromState, "\x74\x6f\137\x73\x74\x61\x74\145" => LabState::RESULTED->value, "\165\x73\x65\x72\x5f\151\144" => $userId, "\x6d\x65\x74\141" => ["\x73\164\145\160" => "\x74\145\143\x68\x6e\x69\143\151\x61\x6e\137\x76\x61\154\x69\144\141\x74\151\x6f\156", "\166\141\154\x69\144\x61\x74\145\x64\137\141\164" => Carbon::now()->toIso8601String()]]); return $order; }); } }

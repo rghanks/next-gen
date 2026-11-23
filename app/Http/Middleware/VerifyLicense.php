@@ -1,77 +1,8 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Http\Middleware;
-
-use App\Services\Licensing\LicenseManager;
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-
-class VerifyLicense
-{
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle(Request $request, Closure $next): Response
-    {
-        // 1. Skip excluded routes (activation page, uploads, etc.)
-        if ($this->shouldSkip($request)) {
-            return $next($request);
-        }
-
-        // 2. Perform verification
-        $status = LicenseManager::verify();
-
-        if (!$status['valid']) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'LICENSE_REQUIRED',
-                    'code' => $status['code'],
-                    'message' => $status['message'],
-                    'machine_id' => $status['current_machine_id'],
-                ], Response::HTTP_FORBIDDEN);
-            }
-
-            return redirect()
-                ->route('license.activate')
-                ->with('license_error', $status['message'])
-                ->with('license_code', $status['code']);
-        }
-
-        // 3. Share license status with all Blade views for expiring soon banners
-        view()->share('licenseStatus', $status);
-
-        return $next($request);
-    }
-
-    /**
-     * Determine if verification should be skipped for this request.
-     */
-    protected function shouldSkip(Request $request): bool
-    {
-        // Skip debugbar / static / health check routes
-        if ($request->is('_debugbar/*', 'sanctum/*', 'up')) {
-            return true;
-        }
-
-        $excludedNames = config('license.excluded_routes', [
-            'license.activate',
-            'license.submit',
-            'license.upload',
-            'license.machine-id',
-        ]);
-
-        foreach ($excludedNames as $name) {
-            if ($request->routeIs($name)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-}
+/*   __________________________________________________
+    |  Obfuscated by YAK Pro - Php Obfuscator  3.0.2   |
+    |              on 2026-11-23 10:46:08              |
+    |    GitHub: https://github.com/pk-fr/yakpro-po    |
+    |__________________________________________________|
+*/
+ declare (strict_types=1); namespace App\Http\Middleware; use App\Services\Licensing\LicenseManager; use Closure; use Illuminate\Http\Request; use Symfony\Component\HttpFoundation\Response; class VerifyLicense { public function handle(Request $request, Closure $next): Response { if ($this->shouldSkip($request)) { return $next($request); } $status = LicenseManager::verify(); if (!$status["\x76\x61\154\x69\144"]) { if ($request->expectsJson() || $request->is("\x61\x70\151\57\x2a")) { return response()->json(["\163\x75\x63\x63\x65\x73\x73" => false, "\145\162\162\x6f\x72" => "\114\111\103\105\x4e\x53\x45\x5f\x52\x45\121\125\x49\x52\105\104", "\x63\x6f\x64\145" => $status["\x63\157\x64\x65"], "\155\145\x73\x73\x61\147\x65" => $status["\x6d\145\163\163\x61\x67\145"], "\x6d\141\143\150\x69\x6e\145\x5f\x69\x64" => $status["\x63\165\x72\162\x65\x6e\x74\137\x6d\x61\143\x68\151\x6e\x65\x5f\x69\144"]], Response::HTTP_FORBIDDEN); } return redirect()->route("\154\x69\143\145\x6e\163\x65\56\141\x63\164\x69\x76\x61\x74\145")->with("\x6c\x69\143\x65\x6e\x73\145\x5f\145\162\x72\157\x72", $status["\155\145\163\x73\141\x67\145"])->with("\x6c\151\143\145\156\163\145\137\143\157\144\145", $status["\x63\157\x64\x65"]); } view()->share("\154\151\143\145\x6e\163\145\123\164\x61\164\x75\163", $status); return $next($request); } protected function shouldSkip(Request $request): bool { if ($request->is("\x5f\144\x65\142\165\147\142\x61\162\x2f\52", "\163\141\156\143\x74\x75\x6d\x2f\x2a", "\x75\160")) { return true; } $excludedNames = config("\154\151\143\x65\156\x73\x65\x2e\145\x78\x63\x6c\x75\x64\x65\x64\x5f\162\157\x75\x74\x65\163", ["\x6c\151\143\x65\x6e\x73\x65\x2e\x61\143\x74\x69\x76\141\164\145", "\x6c\151\143\x65\x6e\x73\145\56\163\165\142\x6d\151\164", "\x6c\x69\x63\145\156\x73\x65\56\165\160\154\x6f\141\144", "\154\x69\143\x65\156\163\x65\x2e\155\141\143\x68\x69\x6e\145\x2d\x69\144"]); foreach ($excludedNames as $name) { if ($request->routeIs($name)) { return true; } } return false; } }

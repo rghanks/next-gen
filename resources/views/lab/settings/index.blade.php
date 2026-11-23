@@ -307,13 +307,138 @@
             <!-- TAB 3: DIGITAL SIGNATURES                                 -->
             <!-- ══════════════════════════════════════════════════════════ -->
             <div class="tab-pane fade" id="tabSignatures" role="tabpanel">
+                <!-- 1. Signature Behavior, Position & Area Margins -->
+                <div class="settings-section-card mb-3">
+                    <div class="settings-section-title">
+                        <i class="uil uil-sliders-v-alt text-primary"></i>
+                        <span>Signature Printing, Placement & Area Spacing</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Toggle: Print with digital signature -->
+                        <div class="col-md-6">
+                            <div class="card p-3 border bg-light h-100">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="print_with_signature" id="checkPrintWithSign" value="1" {{ ($setting->print_with_signature ?? true) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold text-dark" for="checkPrintWithSign" style="font-size: 12.5px;">
+                                        <i class="uil uil-pen me-1 text-primary"></i> Print with Digital Signature Graphic
+                                    </label>
+                                </div>
+                                <div class="text-muted" style="font-size: 11px; line-height: 1.4;">
+                                    When <strong>enabled</strong>, verified reports display uploaded digital signature images. When <strong>disabled</strong>, report leaves clear blank space and signing lines for physical manual pen signatures and clinic stamps.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signature Placement: After Report vs Bottom of Page -->
+                        <div class="col-md-6">
+                            <div class="card p-3 border bg-light h-100">
+                                <label class="field-label fw-bold mb-1">
+                                    <i class="uil uil-arrows-v-alt me-1 text-primary"></i> Signature Placement Area
+                                </label>
+                                <div class="d-flex flex-column gap-2 mt-1">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="signature_position" id="sigPosBottom" value="bottom_of_page" {{ ($setting->signature_position ?? 'bottom_of_page') === 'bottom_of_page' ? 'checked' : '' }}>
+                                        <label class="form-check-label text-dark" for="sigPosBottom" style="font-size: 11.5px;">
+                                            <strong>At the Bottom of the Page:</strong> Fixed in page footer area
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="signature_position" id="sigPosAfterReport" value="after_report" {{ ($setting->signature_position ?? 'bottom_of_page') === 'after_report' ? 'checked' : '' }}>
+                                        <label class="form-check-label text-dark" for="sigPosAfterReport" style="font-size: 11.5px;">
+                                            <strong>Immediately After End of Report:</strong> Inline directly under test results
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page Target & Layout -->
+                        <div class="col-md-4">
+                            <label class="field-label fw-bold">Display On Pages</label>
+                            <select name="signature_page_target" class="form-select form-select-sm">
+                                <option value="all_pages" {{ ($setting->signature_page_target ?? 'all_pages') === 'all_pages' ? 'selected' : '' }}>On Every Page</option>
+                                <option value="last_page_only" {{ ($setting->signature_page_target ?? 'all_pages') === 'last_page_only' ? 'selected' : '' }}>On Last Page Only</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 10px;">Note: 'After End of Report' mode always prints on the last page.</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="field-label fw-bold">Signatories Layout</label>
+                            <select name="signature_layout" class="form-select form-select-sm">
+                                <option value="dual" {{ ($setting->signature_layout ?? 'dual') === 'dual' ? 'selected' : '' }}>Dual (Technician Left & Pathologist Right)</option>
+                                <option value="right_only" {{ ($setting->signature_layout ?? 'dual') === 'right_only' ? 'selected' : '' }}>Right Side Only (Pathologist / Doctor Only)</option>
+                                <option value="left_only" {{ ($setting->signature_layout ?? 'dual') === 'left_only' ? 'selected' : '' }}>Left Side Only (Technician Only)</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 10px;">Select which signature columns to render on reports.</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="field-label fw-bold">Signature Graphic Height</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="signature_height" class="form-control" value="{{ old('signature_height', $setting->signature_height ?? 36) }}" min="20" max="80" required>
+                                <span class="input-group-text bg-light text-muted">px</span>
+                            </div>
+                            <small class="text-muted" style="font-size: 10px;">Default: 36px (Recommended: 28px - 45px).</small>
+                        </div>
+
+                        <!-- Signature Area Spacing / Margins (Top, Bottom, Left, Right in mm) -->
+                        <div class="col-12">
+                            <div class="p-3 border rounded bg-white">
+                                <div class="fw-bold text-dark mb-1" style="font-size: 12px;">
+                                    <i class="uil uil-ruler text-primary me-1"></i> Signature Area Spacing / Padding (in mm)
+                                </div>
+                                <div class="text-muted small mb-3" style="font-size: 10.5px;">
+                                    Adjust how much space the signature area takes from the top, bottom, left, and right on the printed page.
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6 col-md-3">
+                                        <label class="field-label fw-semibold">Space from Top (mm)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="signature_space_top" class="form-control" value="{{ old('signature_space_top', $setting->signature_space_top ?? 5) }}" min="0" max="100">
+                                            <span class="input-group-text bg-light text-muted">mm</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="field-label fw-semibold">Space from Bottom (mm)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="signature_space_bottom" class="form-control" value="{{ old('signature_space_bottom', $setting->signature_space_bottom ?? 5) }}" min="0" max="100">
+                                            <span class="input-group-text bg-light text-muted">mm</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="field-label fw-semibold">Space from Left (mm)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="signature_space_left" class="form-control" value="{{ old('signature_space_left', $setting->signature_space_left ?? 10) }}" min="0" max="100">
+                                            <span class="input-group-text bg-light text-muted">mm</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="field-label fw-semibold">Space from Right (mm)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="signature_space_right" class="form-control" value="{{ old('signature_space_right', $setting->signature_space_right ?? 10) }}" min="0" max="100">
+                                            <span class="input-group-text bg-light text-muted">mm</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Signatory Profiles & Custom Labels -->
                 <div class="row g-3">
                     <!-- Left: Lab Technician -->
                     <div class="col-md-6">
                         <div class="settings-section-card h-100">
                             <div class="settings-section-title">
                                 <i class="uil uil-user-check text-info"></i>
-                                <span>Lab Technician / Prepared By</span>
+                                <span>Lab Technician / Left Signatory</span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="field-label">Signature Label / Role Title</label>
+                                <input type="text" name="technician_signature_label" class="form-control form-control-sm" value="{{ old('technician_signature_label', $setting->technician_signature_label ?? 'Prepared By') }}" placeholder="e.g. Prepared By / Lab Technician / Checked By">
+                                <small class="text-muted" style="font-size: 9.5px;">Label shown above or alongside the signature.</small>
                             </div>
                             <div class="mb-2">
                                 <label class="field-label">Technician Name <span class="text-danger">*</span></label>
@@ -347,7 +472,12 @@
                         <div class="settings-section-card h-100">
                             <div class="settings-section-title">
                                 <i class="uil uil-award text-success"></i>
-                                <span>Consultant Pathologist / Verified By</span>
+                                <span>Consultant Pathologist / Right Signatory</span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="field-label">Signature Label / Role Title</label>
+                                <input type="text" name="pathologist_signature_label" class="form-control form-control-sm" value="{{ old('pathologist_signature_label', $setting->pathologist_signature_label ?? 'Verified By') }}" placeholder="e.g. Verified By / Consultant Pathologist / Authorized Signatory">
+                                <small class="text-muted" style="font-size: 9.5px;">Label shown above or alongside the doctor's signature.</small>
                             </div>
                             <div class="mb-2">
                                 <label class="field-label">Pathologist / Doctor Name <span class="text-danger">*</span></label>

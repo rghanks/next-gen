@@ -120,6 +120,9 @@ class ReportController extends Controller
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
+        $withSignature = $request->has('with_signature')
+            ? $request->boolean('with_signature')
+            : (bool) ($labSetting->print_with_signature ?? true);
 
         return view('lab.reports.templates.report_layout', [
             'order' => $order,
@@ -131,6 +134,7 @@ class ReportController extends Controller
             'isPdf' => false,
             'selectedItemId' => $selectedItemId,
             'combineReports' => $combineReports,
+            'withSignature' => $withSignature,
         ]);
     }
 
@@ -179,6 +183,9 @@ class ReportController extends Controller
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
+        $withSignature = $request->has('with_signature')
+            ? $request->boolean('with_signature')
+            : (bool) ($labSetting->print_with_signature ?? true);
 
         $res = $this->reportRenderer->renderAndStorePdf(
             $order,
@@ -188,7 +195,8 @@ class ReportController extends Controller
             $bottomMargin,
             'print',
             $selectedItemId,
-            $combineReports
+            $combineReports,
+            $withSignature
         );
 
         $fullPath = Storage::disk('local')->path($res['path']);
@@ -250,6 +258,9 @@ class ReportController extends Controller
         $combineReports = $request->has('combine')
             ? $request->boolean('combine')
             : (bool) ($labSetting->combine_reports_on_print ?? false);
+        $withSignature = $request->has('with_signature')
+            ? $request->boolean('with_signature')
+            : (bool) ($labSetting->print_with_signature ?? true);
 
         $hasHeader = !empty($labSetting->getHeaderImageUri());
         $hasFooter = !empty($labSetting->getFooterImageUri());
@@ -271,7 +282,8 @@ class ReportController extends Controller
             $bottomMargin,
             'download',
             $selectedItemId,
-            $combineReports
+            $combineReports,
+            $withSignature
         );
 
         $fullPath = Storage::disk('local')->path($res['path']);

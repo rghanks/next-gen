@@ -25,6 +25,12 @@ class LabSetting extends Model
         'sample_no_digits' => 'integer',
         'starting_sample_no' => 'integer',
         'is_sample_series_locked' => 'boolean',
+        'print_with_signature' => 'boolean',
+        'signature_height' => 'integer',
+        'signature_space_top' => 'integer',
+        'signature_space_bottom' => 'integer',
+        'signature_space_left' => 'integer',
+        'signature_space_right' => 'integer',
     ];
 
     protected static ?self $cachedCurrent = null;
@@ -66,18 +72,47 @@ class LabSetting extends Model
             'technician_name' => 'Anita',
             'technician_designation' => 'Lab Technician',
             'technician_degree' => 'DMLT',
+            'technician_signature_label' => 'Prepared By',
             'technician_signature_path' => 'assets/files/signatures/sign_anita.png',
             'pathologist_name' => 'Dr. Sonali Kalyan',
             'pathologist_designation' => 'Consultant Pathologist',
             'pathologist_degree' => 'M.B.B.S., MD (Path)',
+            'pathologist_signature_label' => 'Verified By',
             'pathologist_signature_path' => 'assets/files/signatures/sign_sonali.png',
             'show_barcode' => true,
             'show_qr_code' => false,
             'combine_reports_on_print' => false,
+            'print_with_signature' => true,
+            'signature_position' => 'bottom_of_page',
+            'signature_page_target' => 'all_pages',
+            'signature_layout' => 'dual',
+            'signature_height' => 36,
+            'signature_space_top' => 5,
+            'signature_space_bottom' => 5,
+            'signature_space_left' => 10,
+            'signature_space_right' => 10,
         ]);
 
         static::$cachedCurrent = $record;
         return $record;
+    }
+
+    public function isSignatureAfterReport(): bool
+    {
+        return ($this->signature_position ?? 'bottom_of_page') === 'after_report';
+    }
+
+    public function shouldShowSignatureOnPage(int $pageIndex, int $totalPages): bool
+    {
+        if ($this->isSignatureAfterReport()) {
+            return $pageIndex === ($totalPages - 1);
+        }
+
+        if (($this->signature_page_target ?? 'all_pages') === 'last_page_only') {
+            return $pageIndex === ($totalPages - 1);
+        }
+
+        return true;
     }
 
     /**

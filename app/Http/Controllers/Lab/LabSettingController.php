@@ -51,10 +51,22 @@ class LabSettingController extends Controller
             'technician_name' => ['required', 'string', 'max:100'],
             'technician_designation' => ['required', 'string', 'max:100'],
             'technician_degree' => ['nullable', 'string', 'max:100'],
+            'technician_signature_label' => ['nullable', 'string', 'max:100'],
 
             'pathologist_name' => ['required', 'string', 'max:100'],
             'pathologist_designation' => ['required', 'string', 'max:100'],
             'pathologist_degree' => ['nullable', 'string', 'max:100'],
+            'pathologist_signature_label' => ['nullable', 'string', 'max:100'],
+
+            'print_with_signature' => ['nullable', 'boolean'],
+            'signature_position' => ['nullable', 'string', 'in:bottom_of_page,after_report'],
+            'signature_page_target' => ['nullable', 'string', 'in:all_pages,last_page_only'],
+            'signature_layout' => ['nullable', 'string', 'in:dual,right_only,left_only'],
+            'signature_height' => ['nullable', 'integer', 'min:20', 'max:100'],
+            'signature_space_top' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_bottom' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_left' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_right' => ['nullable', 'integer', 'min:0', 'max:100'],
 
             'show_barcode' => ['nullable', 'boolean'],
             'show_qr_code' => ['nullable', 'boolean'],
@@ -116,10 +128,19 @@ class LabSettingController extends Controller
             }
         }
 
-        // 2. Normalize Booleans
+        // 2. Normalize Booleans & Signature Preferences
         $validated['show_barcode'] = $request->boolean('show_barcode', true);
         $validated['show_qr_code'] = $request->boolean('show_qr_code', true);
         $validated['combine_reports_on_print'] = $request->boolean('combine_reports_on_print', false);
+        $validated['print_with_signature'] = $request->boolean('print_with_signature', false);
+        $validated['signature_position'] = $request->input('signature_position', 'bottom_of_page') ?: 'bottom_of_page';
+        $validated['signature_page_target'] = $request->input('signature_page_target', 'all_pages') ?: 'all_pages';
+        $validated['signature_layout'] = $request->input('signature_layout', 'dual') ?: 'dual';
+        $validated['signature_height'] = $request->filled('signature_height') ? (int) $request->input('signature_height') : 36;
+        $validated['signature_space_top'] = $request->filled('signature_space_top') ? (int) $request->input('signature_space_top') : 5;
+        $validated['signature_space_bottom'] = $request->filled('signature_space_bottom') ? (int) $request->input('signature_space_bottom') : 5;
+        $validated['signature_space_left'] = $request->filled('signature_space_left') ? (int) $request->input('signature_space_left') : 10;
+        $validated['signature_space_right'] = $request->filled('signature_space_right') ? (int) $request->input('signature_space_right') : 10;
         if ($request->hasFile('header_image') || $request->hasFile('footer_image')) {
             $validated['use_letterhead_image'] = true;
             $validated['print_with_header'] = $request->boolean('print_with_header', false);
@@ -246,6 +267,13 @@ class LabSettingController extends Controller
             'header_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
             'footer_height' => ['nullable', 'integer', 'min:20', 'max:200'],
             'footer_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
+            'print_with_signature' => ['nullable', 'boolean'],
+            'signature_position' => ['nullable', 'string', 'in:bottom_of_page,after_report'],
+            'signature_page_target' => ['nullable', 'string', 'in:all_pages,last_page_only'],
+            'signature_space_top' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_bottom' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_left' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'signature_space_right' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         $setting = LabSetting::current();
@@ -294,6 +322,10 @@ class LabSettingController extends Controller
 
         if ($request->has('combine_reports_on_print')) {
             $validated['combine_reports_on_print'] = $request->boolean('combine_reports_on_print');
+        }
+
+        if ($request->has('print_with_signature')) {
+            $validated['print_with_signature'] = $request->boolean('print_with_signature');
         }
 
         unset($validated['header_image'], $validated['footer_image']);

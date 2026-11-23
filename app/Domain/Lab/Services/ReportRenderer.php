@@ -57,7 +57,8 @@ class ReportRenderer
         ?int $topMargin = null,
         ?int $bottomMargin = null,
         ?int $selectedItemId = null,
-        ?bool $combineReports = null
+        ?bool $combineReports = null,
+        ?bool $withSignature = null
     ): string {
         $order->loadMissing([
             'patient',
@@ -101,6 +102,7 @@ class ReportRenderer
             'labSetting' => $labSetting,
             'selectedItemId' => $selectedItemId,
             'combineReports' => $combineReports,
+            'withSignature' => $withSignature,
         ])->render();
     }
 
@@ -117,9 +119,10 @@ class ReportRenderer
         ?int $bottomMargin = null,
         string $variant = 'download',
         ?int $selectedItemId = null,
-        ?bool $combineReports = null
+        ?bool $combineReports = null,
+        ?bool $withSignature = null
     ): array {
-        $html = $this->renderHtml($order, $report, $withLetterhead, true, $topMargin, $bottomMargin, $selectedItemId, $combineReports);
+        $html = $this->renderHtml($order, $report, $withLetterhead, true, $topMargin, $bottomMargin, $selectedItemId, $combineReports, $withSignature);
 
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4', 'portrait')
@@ -131,7 +134,8 @@ class ReportRenderer
 
         $itemSuffix = $selectedItemId ? "_item{$selectedItemId}" : '';
         $combineSuffix = ($combineReports !== null) ? ($combineReports ? '_cmb' : '_sep') : '';
-        $relativePath = sprintf('lab_reports/%d/report_v%d_%s%s%s.pdf', $order->id, $report->version, $variant, $itemSuffix, $combineSuffix);
+        $signSuffix = ($withSignature !== null) ? ($withSignature ? '_ws' : '_nos') : '';
+        $relativePath = sprintf('lab_reports/%d/report_v%d_%s%s%s%s.pdf', $order->id, $report->version, $variant, $itemSuffix, $combineSuffix, $signSuffix);
         Storage::disk('local')->put($relativePath, $pdfOutput);
 
         if ($variant === 'download' && ! $selectedItemId) {

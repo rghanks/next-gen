@@ -25,11 +25,23 @@ beforeEach(function () {
     $this->serviceB = HospitalService::where('flag', 'test')->where('active', 1)->where('id', '!=', $this->serviceA->id)->firstOrFail();
 
     $this->adminUser = User::first() ?? User::factory()->create();
-    LabSetting::current()->update(['combine_reports_on_print' => false]);
+    LabSetting::current()->update([
+        'combine_reports_on_print' => false,
+        'print_with_signature' => true,
+        'signature_position' => 'bottom_of_page',
+        'signature_page_target' => 'all_pages',
+        'signature_layout' => 'dual',
+    ]);
 });
 
 afterEach(function () {
-    LabSetting::current()->update(['combine_reports_on_print' => false]);
+    LabSetting::current()->update([
+        'combine_reports_on_print' => false,
+        'print_with_signature' => true,
+        'signature_position' => 'bottom_of_page',
+        'signature_page_target' => 'all_pages',
+        'signature_layout' => 'dual',
+    ]);
 });
 
 test('lab setting updates combine_reports_on_print configuration', function () {

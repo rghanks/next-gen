@@ -965,6 +965,15 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <div class="col-12">
+                                <div class="form-check form-switch mt-1">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="print_with_signature" id="setting_print_with_signature" value="1" {{ ($labSetting->print_with_signature ?? true) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold text-dark" for="setting_print_with_signature" style="font-size: 11.5px;">
+                                        Print with Digital Signatures (uncheck to leave blank space for manual stamp & pen signature)
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

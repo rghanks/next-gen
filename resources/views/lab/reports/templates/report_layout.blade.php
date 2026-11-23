@@ -32,8 +32,20 @@
     $isApproved = in_array($order->status, [\App\Domain\Lab\States\LabState::VERIFIED, \App\Domain\Lab\States\LabState::RELEASED], true)
         || in_array($order->status->value ?? (string) $order->status, ['verified', 'released', 'delivered', 'completed'], true);
 
-    $technicianSignUri = $isApproved ? $labSetting->getTechnicianSignUri() : '';
-    $pathologistSignUri = $isApproved ? $labSetting->getPathologistSignUri() : '';
+    $printWithSignature = isset($withSignature) ? (bool) $withSignature : (bool) ($labSetting->print_with_signature ?? true);
+    $signaturePosition = $labSetting->signature_position ?? 'bottom_of_page';
+    $signaturePageTarget = $labSetting->signature_page_target ?? 'all_pages';
+    $signatureLayout = $labSetting->signature_layout ?? 'dual';
+    $sigHeight = (int) ($labSetting->signature_height ?? 36);
+    $sigSpaceTop = (int) ($labSetting->signature_space_top ?? 5);
+    $sigSpaceBottom = (int) ($labSetting->signature_space_bottom ?? 5);
+    $sigSpaceLeft = (int) ($labSetting->signature_space_left ?? 10);
+    $sigSpaceRight = (int) ($labSetting->signature_space_right ?? 10);
+    $techLabel = $labSetting->technician_signature_label ?: 'Prepared By';
+    $pathLabel = $labSetting->pathologist_signature_label ?: 'Verified By';
+
+    $technicianSignUri = ($isApproved && $printWithSignature) ? $labSetting->getTechnicianSignUri() : '';
+    $pathologistSignUri = ($isApproved && $printWithSignature) ? $labSetting->getPathologistSignUri() : '';
 
     // Top and Bottom Margins (configured in mm)
     $hasHeaderImage = $withLetterhead && $labSetting->use_letterhead_image && !empty($headerImageUri);
@@ -753,54 +765,60 @@
                     </tbody>
                 </table>
 
+                @php
+                    $isLastPage = ($pageIndex === count($pages) - 1);
+                    $showSignatureThisPage = $isApproved && (
+                        $signaturePosition === 'after_report' ? $isLastPage : (
+                            $signaturePageTarget === 'last_page_only' ? $isLastPage : true
+                        )
+                    );
+                @endphp
+
                 {{-- End of Report Marker (Shown on the last page of the report) --}}
                 @if($loop->last)
                     <div class="report-end-divider">
                         *** End of Report ***
                     </div>
+
+                    {{-- If signature option is "After End of Report", display signature block here inline directly after report --}}
+                    @if($signaturePosition === 'after_report' && $showSignatureThisPage)
+                        <div class="signature-inline-wrap" style="margin-top: 12px; margin-bottom: 8px; page-break-inside: avoid;">
+                            @include('lab.reports.templates.partials.signature_block', [
+                                'labSetting' => $labSetting,
+                                'printWithSignature' => $printWithSignature,
+                                'technicianSignUri' => $technicianSignUri,
+                                'pathologistSignUri' => $pathologistSignUri,
+                                'signatureLayout' => $signatureLayout,
+                                'sigHeight' => $sigHeight,
+                                'techLabel' => $techLabel,
+                                'pathLabel' => $pathLabel,
+                                'sigSpaceTop' => $sigSpaceTop,
+                                'sigSpaceBottom' => $sigSpaceBottom,
+                                'sigSpaceLeft' => $sigSpaceLeft,
+                                'sigSpaceRight' => $sigSpaceRight,
+                            ])
+                        </div>
+                    @endif
                 @endif
 
                 {{-- Bottom Container: Signatures, Lab Footer, and Disclaimer (COMMON IN ALL PAGES) --}}
                 <div class="report-bottom-block">
-                    {{-- Signatures Block (Technician on Left, Pathologist on Right) - Approved Reports Only --}}
-                    @if($isApproved)
-                        <table class="signature-table">
-                            <tr>
-                                <!-- Left: Lab Technician -->
-                                <td style="width: 50%; text-align: left; padding-left: 10px; vertical-align: bottom;">
-                                    @if($technicianSignUri)
-                                        <img src="{{ $technicianSignUri }}" alt="Signature {{ $labSetting->technician_name }}" style="height: 32px; display: block; margin-bottom: 2px;">
-                                    @else
-                                        <div style="height: 32px;"></div>
-                                    @endif
-                                    <div class="sig-name">{{ $labSetting->technician_name }}</div>
-                                    <div class="sig-desig">
-                                        {{ $labSetting->technician_designation }}
-                                        @if($labSetting->technician_degree)
-                                            <br><span style="font-size: 8.5px; color: #64748b;">{{ $labSetting->technician_degree }}</span>
-                                        @endif
-                                    </div>
-                                </td>
-
-                                <!-- Right: Consultant Pathologist -->
-                                <td style="width: 50%; text-align: right; padding-right: 10px; vertical-align: bottom;">
-                                    @if($pathologistSignUri)
-                                        <img src="{{ $pathologistSignUri }}" alt="Signature {{ $labSetting->pathologist_name }}" style="height: 32px; display: inline-block; margin-bottom: 2px;">
-                                    @else
-                                        <div style="height: 32px;"></div>
-                                    @endif
-                                    <div class="sig-name">{{ $labSetting->pathologist_name }}</div>
-                                    <div class="sig-desig">
-                                        @if($labSetting->pathologist_degree)
-                                            {{ $labSetting->pathologist_degree }}<br>
-                                        @endif
-                                        {{ $labSetting->pathologist_designation }}
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                    @else
-                        <div style="height: 48px;"></div>
+                    {{-- Signatures Block (Technician on Left, Pathologist on Right) - Approved Reports Only (Bottom of page mode) --}}
+                    @if($signaturePosition === 'bottom_of_page' && $showSignatureThisPage)
+                        @include('lab.reports.templates.partials.signature_block', [
+                            'labSetting' => $labSetting,
+                            'printWithSignature' => $printWithSignature,
+                            'technicianSignUri' => $technicianSignUri,
+                            'pathologistSignUri' => $pathologistSignUri,
+                            'signatureLayout' => $signatureLayout,
+                            'sigHeight' => $sigHeight,
+                            'techLabel' => $techLabel,
+                            'pathLabel' => $pathLabel,
+                            'sigSpaceTop' => $sigSpaceTop,
+                            'sigSpaceBottom' => $sigSpaceBottom,
+                            'sigSpaceLeft' => $sigSpaceLeft,
+                            'sigSpaceRight' => $sigSpaceRight,
+                        ])
                     @endif
 
                     {{-- Lab Footer (Letterhead Graphic Banner or Computerized Lab Footer) --}}
